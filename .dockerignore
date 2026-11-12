@@ -1,0 +1,8 @@
+.venv
+data
+evals/results
+**/__pycache__
+.pytest_cache
+.env
+ui/node_modules
+src/ledger_agent/static

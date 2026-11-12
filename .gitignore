@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+data/
+evals/results/
+.env
+ui/node_modules/
+# build output of ui/ (npm run build) - produced in CI/Docker, served by `ledger serve`
+src/ledger_agent/static/

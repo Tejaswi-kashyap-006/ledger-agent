@@ -1,0 +1,407 @@
+/* Components of the Red Khata. Every value comes from tokens.css. */
+
+/* ---- skip link ------------------------------------------------------------------------------ */
+.skip-link {
+  position: absolute; left: var(--s2); top: -100px; z-index: 200;
+  padding: var(--s1) var(--s2); background: var(--khata); color: var(--on-khata);
+}
+.skip-link:focus { top: var(--s2); }
+
+/* ---- heavy rules: drawn ON the page's rule line (at --rule-y), never as a border that shifts layout ---- */
+.heavy-rule { background: linear-gradient(to bottom, transparent var(--rule-y), var(--ink-2) var(--rule-y) calc(var(--rule-y) + 2px), transparent calc(var(--rule-y) + 2px)); }
+
+/* things that are not text lines keep their natural width inside flow containers */
+.btn, .link-btn, .link-arrow, .stamp { align-self: flex-start; }
+
+/* ---- amounts ---------------------------------------------------------------------------------- */
+.amt { font-family: var(--font-figures); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---- hero figure (one per view; crosses the margin rule) -------------------------------------- */
+.hero { margin-left: calc(var(--head-x) - var(--content-left)); }
+.hero__label { position: relative; }
+.hero__value {
+  position: relative;
+  top: var(--hero-nudge, -9px);        /* measured: Rozha 90px baseline lands on the rule */
+  font-size: var(--hero-size, var(--t-hero));
+  line-height: calc(var(--line) * 4);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.hero__note { padding-left: calc(var(--content-left) - var(--head-x)); color: var(--ink-2); }
+
+/* ---- pencil: the model's hand ---------------------------------------------------------------- */
+.pencil { font-family: var(--font-pencil); color: var(--pencil); font-size: 1.0625rem; line-height: var(--line); }
+.pencil__group { opacity: 0.8; }
+.pencil__conf { font-family: var(--font-figures); font-size: var(--t-xs); }
+
+/* ---- haldi highlighter ------------------------------------------------------------------------ */
+.highlight {
+  color: var(--on-haldi);
+  background: linear-gradient(100deg, transparent 0 2px, var(--haldi) 4px calc(100% - 4px), transparent calc(100% - 2px));
+  padding: 0 var(--s1);          /* no vertical padding: it would make a blockified highlight taller than its line */
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+/* everything written on the highlighter uses the on-haldi ink, in both themes (pencil blue on haldi fails contrast) */
+mark.highlight *, mark.highlight .cat--pencil, mark.highlight .cat--pencil .cat__group { color: var(--on-haldi); opacity: 1; }   /* outranks .cat--pencil */
+
+/* ---- stamps ------------------------------------------------------------------------------------ */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-figures);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  color: var(--stamp-ink);
+  border: 1.5px solid currentColor;
+  vertical-align: middle;
+}
+.stamp--lg {
+  font-size: var(--t-sm);
+  line-height: 1;
+  padding: 7px 10px 6px;
+  border-width: 2px;
+  border-radius: 3px;
+  transform: rotate(-5deg);
+  box-shadow: inset 0 0 0 1.5px var(--card), inset 0 0 0 2.5px currentColor;
+  /* uneven ink: a noise mask eats a little of the impression */
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='40'><filter id='f'><feTurbulence baseFrequency='.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 2'/></filter><rect width='120' height='40' filter='url(%23f)'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='40'><filter id='f'><feTurbulence baseFrequency='.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 2'/></filter><rect width='120' height='40' filter='url(%23f)'/></svg>");
+}
+.stamp--sm { font-size: 0.625rem; line-height: 1; padding: 3px 5px 2px; border-width: 1px; border-radius: 2px; letter-spacing: 0.1em; }
+.stamp--cleared { --stamp-ink: var(--cleared); }
+.stamp--critical { --stamp-ink: var(--khata-ink); }
+.stamp--ink { --stamp-ink: var(--ink-2); }
+.stamp--pencil { --stamp-ink: var(--pencil); }
+.stamp--muted { --stamp-ink: var(--muted); }
+.stamp.is-pressed { animation: stamp-press 160ms var(--ease-press) both; }
+@keyframes stamp-press {
+  from { transform: scale(1.35) rotate(-12deg); opacity: 0; filter: blur(1px); }
+  to { transform: scale(1) rotate(-5deg); opacity: 1; filter: none; }
+}
+
+/* ---- categories as written in the ledger ------------------------------------------------------ */
+.cat { display: inline; }   /* inline, not inline-flex: a flex box would synthesize its baseline from the icon */
+.cat svg { display: inline; vertical-align: -1px; margin-right: 3px; }
+.cat .stamp { margin-left: 5px; }
+.cat__group { color: var(--muted); }
+.cat--pencil { color: var(--pencil); font-style: italic; }
+.cat--pencil .cat__group { color: var(--pencil); opacity: 0.8; }
+
+/* ---- buttons ----------------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  min-height: var(--s6);
+  padding: 0 var(--s3);
+  border: 0;
+  border-radius: 2px;
+  font-family: var(--font-body);
+  font-size: var(--t-md);
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 120ms, color 120ms, transform 120ms;
+}
+.btn:disabled { cursor: not-allowed; opacity: 0.5; }
+.btn--ink { background: var(--khata); color: var(--on-khata); box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.2); }
+.btn--ink:hover:not(:disabled) { background: color-mix(in oklab, var(--khata) 88%, black); }
+.btn--ink:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.2); }
+.btn--quiet {
+  min-height: var(--line);
+  padding: 0;
+  background: none;
+  color: var(--ink-2);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 5px;
+  text-decoration-thickness: 2px;
+}
+.btn--quiet:hover:not(:disabled) { color: var(--ink); text-decoration-color: var(--khata-ink); }
+.btn--stamp {
+  background: transparent;
+  color: var(--cleared);
+  border: 2px solid currentColor;
+  font-family: var(--font-figures);
+  font-weight: 500;
+  font-size: var(--t-sm);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-1.5deg);
+}
+.btn--stamp:hover:not(:disabled) { background: color-mix(in oklab, var(--cleared) 10%, transparent); transform: rotate(0); }
+kbd {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0 5px;
+  border: 1px solid var(--rule);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  background: var(--card);
+  color: var(--ink-2);
+  font-family: var(--font-figures);
+  font-size: var(--t-xs);
+  line-height: 18px;
+  text-align: center;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.link-btn {
+  padding: 0; border: 0; background: none; cursor: pointer;
+  color: var(--pencil); font-size: var(--t-sm); text-decoration: underline; text-underline-offset: 3px;
+}
+.link-arrow { color: var(--khata-ink); font-weight: 700; text-decoration: none; }
+.link-arrow::after { content: " →"; }
+.link-arrow:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+/* ---- fields sit on a rule line --------------------------------------------------------------- */
+.field { display: grid; align-content: start; }
+.field__label { display: block; }
+/* you write on the line: the input is one ruled line whose rule is drawn heavy */
+.field__input {
+  width: 100%;
+  height: var(--line);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--ink);
+  font-size: var(--t-md);
+  line-height: var(--line);
+  background: linear-gradient(to bottom, transparent var(--rule-y), var(--ink-2) var(--rule-y) calc(var(--rule-y) + 2px), transparent calc(var(--rule-y) + 2px));
+}
+.field__input::placeholder { color: var(--muted); opacity: 0.8; }
+.field__input:focus {
+  outline: none;
+  background: linear-gradient(to bottom, transparent var(--rule-y), var(--khata-ink) var(--rule-y) calc(var(--rule-y) + 3px), transparent calc(var(--rule-y) + 3px));
+}
+.field__select { cursor: pointer; appearance: auto; }
+.field__select option { background: var(--card); color: var(--ink); }
+.field__area {
+  resize: vertical;
+  height: auto;
+  min-height: calc(var(--line) * 2);
+  padding: 0;
+  background: repeating-linear-gradient(to bottom, transparent 0 var(--rule-y), var(--ink-2) var(--rule-y) calc(var(--rule-y) + 1px), transparent calc(var(--rule-y) + 1px) var(--line));
+  background-attachment: local;
+}
+.field__area:focus { background: repeating-linear-gradient(to bottom, transparent 0 var(--rule-y), var(--khata-ink) var(--rule-y) calc(var(--rule-y) + 1px), transparent calc(var(--rule-y) + 1px) var(--line)); background-attachment: local; }
+.field__hint { color: var(--muted); font-size: var(--t-sm); line-height: var(--line); }
+
+/* ---- notes: loading / error written on the page ----------------------------------------------- */
+.note { color: var(--ink-2); }
+.note--loading { font-style: italic; color: var(--muted); }
+.note--error { padding-left: var(--s2); border-left: 3px solid var(--khata-ink); color: var(--ink); }
+.note--error { display: flex; flex-direction: column; }
+
+/* ---- category picker ---------------------------------------------------------------------------- */
+.picker { position: relative; }
+.picker__list {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: calc(var(--line) * 9);
+  overflow-y: auto;
+  margin-top: 2px;
+  padding: var(--s1) 0;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  box-shadow: 3px 3px 0 var(--rule);
+}
+.picker__opt {
+  display: flex;
+  gap: var(--s1);
+  align-items: baseline;
+  padding: 0 var(--s2);
+  line-height: var(--line);
+  cursor: pointer;
+}
+.picker__opt[aria-selected="true"] { background: var(--haldi); color: var(--on-haldi); }
+.picker__opt[aria-selected="true"] .picker__group { color: var(--on-haldi); }
+.picker__group { min-width: 7.5em; color: var(--muted); font-size: var(--t-sm); }
+.picker__empty { padding: 0 var(--s2); color: var(--muted); }
+
+/* ---- slips (toasts) ------------------------------------------------------------------------------- */
+.slip-dock { position: fixed; right: var(--s4); bottom: var(--s4); z-index: 150; max-width: min(380px, calc(100vw - 2 * var(--s4))); }
+.slip {
+  position: relative;
+  padding: var(--s2) var(--s6) var(--s2) var(--s3);
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-left: 5px solid var(--slip-edge, var(--ink-2));
+  box-shadow: 4px 4px 0 var(--rule);
+  transform: rotate(-0.6deg);
+  animation: slip-in 220ms var(--ease-out) both;
+}
+.slip--cleared { --slip-edge: var(--cleared); }
+.slip--critical { --slip-edge: var(--khata-ink); }
+.slip__title { font-weight: 700; }
+.slip__body { color: var(--ink-2); font-size: var(--t-sm); line-height: 21px; }
+.slip__close {
+  position: absolute; top: var(--s1); right: var(--s1);
+  width: var(--s4); height: var(--s4); border: 0; background: none; cursor: pointer;
+  color: var(--muted); font-size: var(--t-lg); line-height: 1;
+}
+@keyframes slip-in { from { opacity: 0; transform: translateY(14px) rotate(-0.6deg); } to { opacity: 1; transform: rotate(-0.6deg); } }
+
+/* ---- ruled tables ------------------------------------------------------------------------------- */
+.ruled { width: 100%; border-collapse: collapse; font-size: var(--t-md); }
+/* Rows are whole lines and have no borders: the page's own rules show through as the row rules, so every
+   entry sits on its line exactly like the rest of the sheet. The header rule is drawn heavy on its line. */
+.ruled th, .ruled td { padding: 0 var(--s2) 0 0; line-height: var(--line); text-align: left; vertical-align: top; font-weight: 400; }
+.ruled thead th {
+  font-family: var(--font-figures);
+  font-size: var(--t-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  background: linear-gradient(to bottom, transparent var(--rule-y), var(--ink-2) var(--rule-y) calc(var(--rule-y) + 2px), transparent calc(var(--rule-y) + 2px));
+}
+/* a cell set in the figure face has its own baseline (20px, measured): lift it onto Mukta's line */
+.ruled td.fig, .ruled th.fig { position: relative; top: -2px; }
+.ruled tbody th { font-weight: 500; }
+.ruled .num { text-align: right; padding-left: var(--s2); }
+.ruled th:last-child, .ruled td:last-child { padding-right: 0; }
+.nowrap { white-space: nowrap; }
+.table-scroll { overflow-x: auto; }
+
+/* ---- bars inside ruled rows (one series) --------------------------------------------------------- */
+.bars { table-layout: fixed; }   /* column widths follow the CSS, not the longest label */
+.bars .bar-row { position: relative; outline-offset: -2px; }
+.bar-row__label { width: 40%; padding-right: var(--s2); }
+.bar-row__cell { position: relative; }
+.bar-row__track { display: flex; align-items: flex-start; gap: var(--s1); height: var(--line); }
+.bar-row__bar {
+  display: block;
+  flex: none;
+  height: 10px;
+  margin-top: calc(var(--rule-y) - 10px);   /* the bar stands on the row's rule, like the text beside it */
+  background: var(--series-out);
+  border-radius: 0 4px 4px 0;   /* 4px rounded data-end, square at the baseline */
+  transform-origin: left;
+  animation: bar-grow 420ms var(--ease-out) both;
+  animation-delay: inherit;
+}
+.bar-row__track > .bar-row__value { font-size: var(--t-sm); color: var(--ink); white-space: nowrap; line-height: var(--line); position: relative; top: -2px; }
+.bar-row:hover .bar-row__bar, .bar-row:focus-visible .bar-row__bar { filter: brightness(1.15); }
+@keyframes bar-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.chart-tip {
+  position: absolute;
+  z-index: 30;
+  right: 0;                      /* grow leftwards, inside the cell: a tooltip must never widen the page */
+  bottom: calc(100% - 2px);
+  display: grid;
+  gap: 2px;
+  padding: var(--s1) var(--s2);
+  background: var(--card);
+  border: 1px solid var(--rule);
+  box-shadow: 3px 3px 0 var(--rule);
+  font-size: var(--t-sm);
+  line-height: 20px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 100ms;
+}
+.chart-tip strong { color: var(--ink); font-weight: 500; }
+.bar-row:hover .chart-tip, .bar-row:focus-visible .chart-tip { opacity: 1; }
+.chart-tip--float { opacity: 1; right: auto; bottom: auto; top: 0; transform: translateX(-50%); }
+.chart-tip__title { font-family: var(--font-figures); font-size: var(--t-xs); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.chart-tip__row { display: flex; align-items: center; gap: var(--s1); }
+
+/* ---- line chart ---------------------------------------------------------------------------------- */
+.chart__head { display: grid; gap: 0; }
+.chart__plot { position: relative; }
+.chart svg { width: 100%; height: auto; overflow: visible; touch-action: pan-y; }
+.chart svg:focus-visible { outline: 2px solid var(--pencil); outline-offset: 4px; }
+.chart__grid { stroke: var(--rule); stroke-width: 1; }
+.chart__base { stroke: var(--muted); stroke-width: 1; }
+.chart__tick { fill: var(--muted); font-family: var(--font-figures); font-size: 10px; }
+.chart__end { fill: var(--ink-2); font-family: var(--font-figures); font-size: 10px; }
+.chart__cross { stroke: var(--muted); stroke-width: 1; }
+.chart__line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.chart__line--out { stroke: var(--series-out); }
+.chart__line--in { stroke: var(--series-in); }
+.chart__dot { stroke: var(--paper); stroke-width: 2; }
+.chart__dot--out { fill: var(--series-out); }
+.chart__dot--in { fill: var(--series-in); }
+.legend { display: flex; flex-wrap: wrap; gap: var(--s2); font-size: var(--t-sm); color: var(--ink-2); }
+.legend li { display: inline-flex; align-items: center; gap: 6px; }
+.legend__key { display: inline-block; width: 16px; height: 2px; border-radius: 1px; }
+.legend__key--in { background: var(--series-in); }
+.legend__key--out { background: var(--series-out); }
+.chart__table { font-size: var(--t-sm); }
+.chart > .link-btn { line-height: var(--line); }
+
+/* ---- the index card (review / audit) ------------------------------------------------------------- */
+.entry-card {
+  position: relative;
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s4) var(--s4) var(--s3);
+  background: var(--card);
+  border: 1px solid var(--rule);
+  box-shadow: 2px 2px 0 var(--rule);
+  animation: card-in 300ms var(--ease-out) 420ms both;
+  transition: transform 320ms var(--ease-out), opacity 320ms;
+}
+.entry-card.is-stamped { transform: translateX(var(--s4)) rotate(1.5deg); opacity: 0.35; transition-delay: 220ms; }
+@keyframes card-in { from { opacity: 0; transform: translateY(var(--s2)); } to { opacity: 1; transform: none; } }
+.entry-card__top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); flex-wrap: wrap; }
+.entry-card__merchant { font-family: var(--font-body); font-size: var(--t-xl); line-height: calc(var(--line) * 1.5); font-weight: 700; }
+.entry-card__amount { font-size: var(--t-xl); line-height: calc(var(--line) * 1.5); }
+.entry-card__narration { font-size: var(--t-sm); color: var(--ink-2); overflow-wrap: anywhere; }
+.entry-card__suggestion { padding: var(--s2) 0; border-top: 1px dashed var(--rule); border-bottom: 1px dashed var(--rule); }
+.entry-card__guess .pencil { font-size: var(--t-xl); line-height: calc(var(--line) * 1.5); }
+.entry-card__why .pencil { font-size: 1.0625rem; }
+.entry-card__accept { margin-top: var(--s2); }
+.entry-card__choose { display: grid; gap: var(--s2); }
+.entry-card__foot { display: flex; justify-content: flex-end; }
+.entry-card__stamp { position: absolute; right: var(--s6); top: var(--s8); pointer-events: none; }
+.entry-card__stamp .stamp--lg { font-size: var(--t-lg); padding: 10px 14px 9px; }
+.quick-picks { display: flex; flex-wrap: wrap; gap: var(--s1); }
+.quick-pick {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: var(--s4); padding: 0 var(--s1);
+  border: 1px solid var(--rule); border-radius: 2px;
+  background: var(--paper); color: var(--ink); cursor: pointer; font-size: var(--t-sm);
+}
+.quick-pick:hover:not(:disabled) { border-color: var(--ink-2); }
+
+/* ---- receipt with a torn edge ------------------------------------------------------------------- */
+.receipt {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  padding: var(--s3) var(--s3) var(--s4);
+  background: var(--card);
+  font-family: var(--font-figures);
+  font-size: var(--t-sm);
+  line-height: 21px;
+  box-shadow: 2px 2px 0 var(--rule);
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 14px 100%;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 14px 100%;
+  animation: row-in 260ms var(--ease-out) both;
+}
+.receipt__head { font-weight: 500; overflow-wrap: anywhere; padding-bottom: var(--s1); border-bottom: 1px dashed var(--muted); margin-bottom: var(--s1); }
+.receipt__line { display: flex; justify-content: space-between; gap: var(--s2); }
+.receipt__line > :first-child { color: var(--ink-2); }
+.receipt__rule { border-top: 1px dashed var(--rule); margin: var(--s1) 0; }
+.receipt__reject { color: var(--khata-ink); font-size: var(--t-xs); overflow-wrap: anywhere; }
+.receipt__bad { color: var(--khata-ink); }
+.receipt__error { color: var(--ink); overflow-wrap: anywhere; margin-top: var(--s1); }
+.receipt__stamp { margin-top: var(--s2); display: flex; justify-content: flex-end; }
+
+/* ---- payee names: ledger keys are uppercase; set them as letterspaced caps, everywhere ------------ */
+.payee, .ledger__payee, .posted__merchant, .entry-card__merchant { letter-spacing: 0.03em; }
+.payee { font-size: var(--t-sm); font-weight: 500; }

@@ -1,0 +1,7 @@
+{
+  "_comment": "Regression gate for `python evals/run_evals.py --fake --check evals/baseline_fake.json` (CI). Thresholds sit slightly below the measured values so noise-free regressions fail loudly.",
+  "min_final_auto_accuracy": 0.97,
+  "max_final_silent_error_rate": 0.02,
+  "min_final_automation_rate": 0.9,
+  "require_learning": true
+}

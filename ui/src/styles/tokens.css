@@ -1,0 +1,117 @@
+/* The Red Khata - design tokens.
+   Source of truth: ledger-agent/DESIGN.md (Approved). Every value here mirrors a row of its tables.
+   Change DESIGN.md first, then this file. Nothing else in the UI may hard-code a color, font or spacing value. */
+
+:root {
+  color-scheme: light;
+
+  /* ---- color -------------------------------------------------------------------------- */
+  --paper: #f3ebda;
+  --paper-deep: #e8dcc4;
+  --card: #fbf6ea;
+  --rule: #d9cbb0;
+  --ink: #1c1a17;
+  --ink-2: #4a443b;
+  --muted: #6b6254;
+  --khata: #7a1719;
+  --khata-ink: #8c1c1f;
+  --pencil: #1f4e8c;
+  --haldi: #e9b949;
+  --cleared: #2d6a3e;
+  --on-khata: #f3ebda;
+  --on-haldi: #1c1a17;
+
+  /* chart series - validated with the dataviz validator (both modes pass every check) */
+  --series-out: #9b2226;
+  --series-in: #2a5c9e;
+
+  /* grain: fractal noise, multiplied into the paper */
+  --grain-opacity: 0.07;
+  --grain-blend: multiply;
+
+  /* ---- type ----------------------------------------------------------------------------- */
+  --font-display: "Rozha One", "Georgia", serif;
+  --font-body: "Mukta", "Segoe UI", system-ui, sans-serif;
+  --font-figures: "IBM Plex Mono", "Cascadia Mono", "Consolas", monospace;
+  --font-pencil: "Kalam", "Segoe Print", cursive;
+
+  --t-xs: 0.75rem;     /* 12 */
+  --t-sm: 0.875rem;    /* 14 */
+  --t-md: 1rem;        /* 16 */
+  --t-lg: 1.3125rem;   /* 21 */
+  --t-xl: 1.75rem;     /* 28 */
+  --t-2xl: 2.375rem;   /* 38 */
+  --t-3xl: 3.125rem;   /* 50 */
+  --t-hero: 5.625rem;  /* 90 */
+
+  /* ---- space: the ruled line is 28px; every gap is a multiple of 7px ---------------------- */
+  /* Vertical rhythm: every text line box is 28px and starts on the grid; the rule is drawn --rule-y
+     into each band, i.e. 2px under the body baseline (Mukta 16px sits at 18px in a 28px box - measured). */
+  --line: 28px;
+  --rule-y: 20px;
+  --s1: 7px;
+  --s2: 14px;
+  --s3: 21px;
+  --s4: 28px;
+  --s6: 42px;
+  --s8: 56px;
+  --s12: 84px;
+  --s16: 112px;
+
+  /* ---- layout ----------------------------------------------------------------------------- */
+  --spine-w: 72px;
+  --tabs-w: 140px;
+  --margin-rule-x: 84px;       /* the red double rule, measured from the sheet's left edge */
+  --main-max: 728px;
+  --marginalia-w: 280px;
+
+  /* ---- motion ----------------------------------------------------------------------------- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-press: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --paper: #1c1814;
+    --paper-deep: #15120f;
+    --card: #26201a;
+    --rule: #2e2822;
+    --ink: #ede3cf;
+    --ink-2: #c9bda8;
+    --muted: #a39785;
+    --khata: #5e1214;
+    --khata-ink: #ec7d72;
+    --pencil: #8fb2ea;
+    --haldi: #e9b949;
+    --cleared: #6fbf84;
+    --on-khata: #f3ebda;
+    --on-haldi: #1c1a17;
+    --series-out: #e0645a;
+    --series-in: #6593d8;
+    --grain-opacity: 0.05;
+    --grain-blend: screen;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #1c1814;
+  --paper-deep: #15120f;
+  --card: #26201a;
+  --rule: #2e2822;
+  --ink: #ede3cf;
+  --ink-2: #c9bda8;
+  --muted: #a39785;
+  --khata: #5e1214;
+  --khata-ink: #ec7d72;
+  --pencil: #8fb2ea;
+  --haldi: #e9b949;
+  --cleared: #6fbf84;
+  --on-khata: #f3ebda;
+  --on-haldi: #1c1a17;
+  --series-out: #e0645a;
+  --series-in: #6593d8;
+  --grain-opacity: 0.05;
+  --grain-blend: screen;
+}

@@ -1,0 +1,244 @@
+/* The book: spine | index tabs | the ruled sheet (main column + marginalia).
+   Load sequence (DESIGN.md "Motion"): spine 0ms -> rules draw 80ms -> margin rule drops 240ms
+   -> title & hero ink in 380ms -> rows 480ms + 40ms x n (first 12). */
+
+.book {
+  display: grid;
+  grid-template-columns: var(--spine-w) var(--tabs-w) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* ---- spine ------------------------------------------------------------------------------- */
+.spine {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s4) 0 var(--s3);
+  color: var(--on-khata);
+  background-color: var(--khata);
+  background-image:
+    repeating-linear-gradient(45deg, rgb(255 255 255 / 0.04) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(-45deg, rgb(0 0 0 / 0.1) 0 1px, transparent 1px 4px);
+  box-shadow: inset -4px 0 0 rgb(0 0 0 / 0.16), inset 1px 0 0 rgb(255 255 255 / 0.06);
+  animation: spine-in 120ms var(--ease-out) both;
+  z-index: 3;
+}
+.spine__mark {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: var(--font-display);
+  font-size: var(--t-xl);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  color: inherit;
+  white-space: nowrap;
+}
+.spine__mark small { font-size: var(--t-md); letter-spacing: 0.3em; opacity: 0.8; }
+.spine__band { width: 42px; height: 2px; background: rgb(243 235 218 / 0.35); box-shadow: 0 5px 0 rgb(243 235 218 / 0.35); }
+.spine__theme {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgb(243 235 218 / 0.35);
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.spine__theme:hover { background: rgb(0 0 0 / 0.18); }
+
+/* ---- index tabs ------------------------------------------------------------------------- */
+.tabs {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: var(--s8) 0 var(--s4) var(--s1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  z-index: 2;
+}
+.tab {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--s4) 1fr auto;
+  column-gap: var(--s1);
+  align-items: center;
+  height: var(--s6);
+  padding: 0 var(--s2) 0 var(--s2);
+  margin-right: -1px;
+  color: var(--ink-2);
+  text-decoration: none;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  border-right: 0;
+  border-radius: 7px 0 0 7px;
+  font-weight: 500;
+  font-size: var(--t-md);
+  transition: background-color 120ms, color 120ms;
+}
+.tab:hover { color: var(--ink); background: color-mix(in oklab, var(--paper) 60%, var(--paper-deep)); }
+.tab__num { font-family: var(--font-figures); font-size: var(--t-xs); color: var(--muted); }
+.tab[aria-current="page"] {
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 700;
+  z-index: 1;
+}
+.tab[aria-current="page"] .tab__num { color: var(--khata-ink); }
+.tab__count {
+  min-width: var(--s4);
+  padding: 0 var(--s1);
+  border-radius: 2px;
+  background: var(--haldi);
+  color: var(--on-haldi);
+  font-family: var(--font-figures);
+  font-size: var(--t-xs);
+  line-height: 20px;
+  text-align: center;
+}
+.tabs__gap { flex: 1; }
+
+/* ---- the sheet ---------------------------------------------------------------------------- */
+.sheet {
+  --content-left: calc(var(--margin-rule-x) + var(--s4));
+  --head-x: var(--s4);
+  position: relative;
+  isolation: isolate;
+  max-width: calc(var(--content-left) + var(--main-max) + var(--s8) + var(--marginalia-w) + var(--s8));
+  min-height: 100vh;
+  margin: 0 auto var(--s4) 0;
+  background: var(--paper);
+  border-left: 1px solid var(--rule);
+  overflow-x: clip;   /* safety net: nothing on the sheet may widen the page (clip keeps sticky children working) */
+}
+/* the next sheet of the book peeking out behind - the only drop shadow in the app */
+.sheet::before {
+  content: "";
+  position: absolute;
+  inset: var(--s1) calc(-1 * var(--s1)) calc(-1 * var(--s1)) var(--s1);
+  z-index: -1;
+  background: color-mix(in oklab, var(--paper) 55%, var(--paper-deep));
+  border: 1px solid var(--rule);
+  box-shadow: 7px 7px 21px rgb(20 12 4 / 0.14);
+}
+.sheet__rules {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  /* one rule per 28px band, drawn where the text's baseline sits (--rule-y), not at the band's bottom */
+  background: var(--paper) repeating-linear-gradient(
+    to bottom,
+    transparent 0 var(--rule-y),
+    var(--rule) var(--rule-y) calc(var(--rule-y) + 1px),
+    transparent calc(var(--rule-y) + 1px) var(--line)
+  );
+  animation: rules-draw 360ms var(--ease-out) 80ms both;
+}
+.sheet__margin {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--margin-rule-x);
+  width: 5px;
+  border-left: 1px solid var(--khata-ink);
+  border-right: 1px solid var(--khata-ink);
+  opacity: 0.75;
+  transform-origin: top;
+  animation: rule-drop 280ms var(--ease-out) 240ms both;
+  pointer-events: none;
+}
+.sheet__body {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, var(--main-max)) var(--marginalia-w);
+  column-gap: var(--s8);
+  align-items: start;
+  padding: var(--s8) var(--s8) var(--s16) var(--content-left);
+}
+.sheet__main { min-width: 0; }
+.marginalia { padding-top: calc(var(--line) * 4); }
+
+/* ---- vertical rhythm ------------------------------------------------------------------------------
+   Flow containers stack their children with gaps that are whole lines. Children are snapped by
+   lib/rhythm.ts: each gets a bottom margin that rounds its height up to a whole line, so whatever comes
+   next starts on the grid again. KEEP THIS LIST IN SYNC WITH FLOW_CONTAINERS in lib/rhythm.ts. */
+.sheet__main, .marginalia, .marginalia > section, .section, .chart, .letters, .letter, .letter__a,
+.write-cta, .all-clear, .next-step, .editorial, .post-form, .struck {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+.sheet__main, .marginalia, .letters { gap: calc(var(--line) * 2); }
+.write-cta, .all-clear, .next-step, .editorial, .post-form, .letter { gap: var(--line); }
+.section > .h-section + * { margin-top: var(--line); }
+
+/* A title unit (kicker + title) starts LEFT of the margin rule and crosses it - the grid-breaking gesture.
+   The kicker hangs with its title so the unit reads as one; the intro paragraph returns to the text column.
+   Where the ink crosses the red rule, a strip of paper lifts the rule out from under the glyphs. */
+.folio-head { margin-left: calc(var(--head-x) - var(--content-left)); }
+.folio-head p:not(.kicker) { padding-left: calc(var(--content-left) - var(--head-x)); max-width: calc(60ch + var(--content-left)); color: var(--ink-2); }
+.folio-head h1 { animation: ink-in 260ms var(--ease-out) 380ms both; }
+/* Display type spans several ruled lines, so rules would always cut through it: it is set on a clean patch
+   of paper instead (the ruling resumes beside it). The one-line kicker and label only lift the red rule. */
+.folio-head h1, .hero__value, .stat-line__big { width: fit-content; background: var(--paper); }
+.folio-head .kicker, .hero__label {
+  width: fit-content;
+  z-index: 1;
+  background: linear-gradient(to right,
+    transparent calc(var(--margin-rule-x) - var(--head-x) - 3px),
+    var(--paper) calc(var(--margin-rule-x) - var(--head-x) - 3px) calc(var(--margin-rule-x) - var(--head-x) + 8px),
+    transparent calc(var(--margin-rule-x) - var(--head-x) + 8px));
+}
+.folio-head .kicker { position: relative; }
+
+.ink-in { animation: ink-in 260ms var(--ease-out) 380ms both; }
+
+/* rows appear one after another (first 12), the rest land with the 12th */
+.stagger > * { animation: row-in 220ms var(--ease-out) both; animation-delay: calc(480ms + var(--i, 12) * 40ms); }
+.stagger > :nth-child(1) { --i: 0; }  .stagger > :nth-child(2) { --i: 1; }  .stagger > :nth-child(3) { --i: 2; }
+.stagger > :nth-child(4) { --i: 3; }  .stagger > :nth-child(5) { --i: 4; }  .stagger > :nth-child(6) { --i: 5; }
+.stagger > :nth-child(7) { --i: 6; }  .stagger > :nth-child(8) { --i: 7; }  .stagger > :nth-child(9) { --i: 8; }
+.stagger > :nth-child(10) { --i: 9; } .stagger > :nth-child(11) { --i: 10; } .stagger > :nth-child(12) { --i: 11; }
+
+@keyframes spine-in { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes rules-draw { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes rule-drop { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes ink-in { from { opacity: 0; filter: blur(2px); } to { opacity: 1; filter: none; } }
+@keyframes row-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ---- responsive ----------------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .sheet__body { grid-template-columns: minmax(0, 1fr); row-gap: calc(var(--line) * 2); }
+  .marginalia { padding-top: 0; }
+}
+
+@media (max-width: 720px) {
+  .book { grid-template-columns: minmax(0, 1fr); }
+  /* the spine becomes a 7px crimson top edge */
+  .spine { position: static; height: var(--s1); padding: 0; animation: none; }
+  .spine > * { display: none; }
+  .tabs {
+    position: fixed;
+    inset: auto 0 0 0;
+    height: auto;
+    flex-direction: row;
+    padding: 0;
+    gap: 0;
+    overflow-x: auto;
+    background: var(--paper-deep);
+    border-top: 1px solid var(--rule);
+  }
+  .tab { flex: 0 0 auto; border-radius: 0; border: 0; height: var(--s8); grid-template-columns: auto auto; gap: var(--s1); }
+  .tab__num, .tabs__gap { display: none; }
+  .sheet { --margin-rule-x: var(--s3); --head-x: var(--s1); border-left: 0; margin-bottom: var(--s8); }
+  .sheet::before { display: none; }
+  .sheet__body { padding: var(--s8) var(--s2) var(--s16) var(--content-left); }
+}

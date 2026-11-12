@@ -1,0 +1,3 @@
+Landlord is Ramesh Kumar; rent is paid to him by UPI around the 3rd of each month.
+Own accounts: HDFC Savings and ICICI Credit Card - payments between them are Transfers:Self.
+Sunita Devi is the user's mother; monthly money sent to her is Transfers:To People.
