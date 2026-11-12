@@ -6,7 +6,9 @@ needs the model, catches its own confident mistakes, reconciles balances, finds 
 hikes, writes a monthly report whose numbers are checked, and answers questions like *"how much did we
 spend eating out in July?"*
 
-It's the capstone of this course: every idea from P01-P10 applied to one real problem, with the
+It's the capstone of a ten-project course on agent harness engineering (the loop, the harness, context,
+memory, long-horizon runs, multi-agent, evals): every idea from those projects, P01-P10, applied to one
+real problem, with the
 production concerns that tutorials usually skip (money correctness, idempotency, budgets, privacy,
 prompt injection, audit logs, evals in CI). **One process serves both the web app and its REST API.**
 
@@ -146,7 +148,7 @@ tracking), and `LEDGER_API_KEY`.
 
 | Doc | For |
 |---|---|
-| [DESIGN.md](DESIGN.md) · [ui/README.md](ui/README.md) | the approved design system; the frontend code and its rules |
+| [DESIGN.md](DESIGN.md) · [docs/UI_DESIGN_PROTOCOL.md](docs/UI_DESIGN_PROTOCOL.md) · [ui/README.md](ui/README.md) | the approved design system; the UI rules behind it; the frontend code |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | components, data flow, schema, design decisions and rejected alternatives |
 | [docs/THEORY.md](docs/THEORY.md) | the expert theory: cascades, calibration, silent errors, memory lifecycle, exactly-once, injection, grounding |
 | [docs/CODE_WALKTHROUGH.md](docs/CODE_WALKTHROUGH.md) | a guided read of the code: trace one transaction and one question end to end |
@@ -155,6 +157,9 @@ tracking), and `LEDGER_API_KEY`.
 | [docs/SECURITY.md](docs/SECURITY.md) | threat model, data flows to the LLM provider, controls and known gaps |
 
 ## Where each course project shows up
+
+P01-P10 are the course's projects, which the docs here refer to by number. The course itself lives
+outside this repository; this table is the map from each idea to its code.
 
 | Course project | In Ledger Agent |
 |---|---|

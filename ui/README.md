@@ -3,7 +3,7 @@
 React 19 + TypeScript + Vite. The design system is **"The Red Khata"**: the app is laid out like a
 *bahi-khata*, the red cloth-bound account book. Before touching a stylesheet, read:
 
-1. [`../../UI_DESIGN_PROTOCOL.md`](../../UI_DESIGN_PROTOCOL.md): the rules for all UI work in this workspace
+1. [`../docs/UI_DESIGN_PROTOCOL.md`](../docs/UI_DESIGN_PROTOCOL.md): the rules for all UI work in this repository
 2. [`../DESIGN.md`](../DESIGN.md) (**Approved**): tokens, type, layout, motion, page copy. It's binding.
 
 ## Run it

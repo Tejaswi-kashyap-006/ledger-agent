@@ -1,7 +1,7 @@
 # Ledger Agent: design direction
 
 > **Status: APPROVED (2026-09-28).** Every token, font weight and spacing rule here is binding for all UI
-> work (see `../UI_DESIGN_PROTOCOL.md`). To change the system, change this file first, then the code.
+> work (see [`docs/UI_DESIGN_PROTOCOL.md`](docs/UI_DESIGN_PROTOCOL.md)). To change the system, change this file first, then the code.
 > Implementation: `ui/src/styles/tokens.css` mirrors the tables below one to one.
 
 ## Direction: "The Red Khata"
