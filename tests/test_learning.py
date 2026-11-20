@@ -77,9 +77,10 @@ def test_contradicting_correction_invalidates_compiled_rule(loaded, settings, ke
 
 
 def test_review_queue_and_accept(loaded, settings):
-    process_pending(loaded, None, settings)                               # no model: everything needs a human
+    r = process_pending(loaded, None, settings)                           # no model: all but transfers need a human
     q = review_queue(loaded, 500)
-    assert len(q) == 121 and {i["review_reason"] for i in q} == {"no_llm", "suspicious_text"}
+    assert r.stats.transfer_matches == 6                                  # 3 card bills, both sides, need no model
+    assert len(q) == 121 - 6 and {i["review_reason"] for i in q} == {"no_llm", "suspicious_text"}
     with pytest.raises(ValueError):
         accept_suggestion(loaded, q[0]["id"])                              # nothing to accept
     with pytest.raises(ValueError):

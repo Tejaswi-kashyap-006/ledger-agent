@@ -80,6 +80,8 @@ loop:
   BEGIN
     per row: injection tripwire? → review
              rule match?         → categorized (rule)
+             mirrored by an equal, opposite entry in another own account (±4 days, unique both ways)?
+                                 → Transfers:Self (rule); the other side follows unless a human or rule decided it
     rest → retrieve verified examples → build redacted prompt → llm.parse(CategorizationBatch)
          → per item: missing → review · direction sensor fails → review · conf < τ → review · else categorized (llm)
     UPDATE runs SET checkpoint, stats
@@ -116,6 +118,7 @@ persist (question, answer)
 | SQLite, one file | Postgres from day 1 | single-user tool, zero ops, transactional, WAL gives concurrent reads. `db.py` is the only place that knows it's SQLite, and the scaling path is in OPERATIONS.md |
 | Closed category enum | free-text categories + normalization | makes invalid output impossible; injection-resistant; reports stay consistent. Extending means editing one list |
 | Cascade: rules → LLM → human | LLM for everything | cost falls over time; rules are auditable; the model only handles what's actually unknown |
+| Own-account transfers matched by amount and date across accounts | household memory or prompt instructions | the model reads one line at a time and was confidently wrong on card bills; a pairing check needs no tokens and can't be talked out of it |
 | Learning by compiling rules | fine-tuning; only few-shot | instant, free, explainable, reversible; fine-tuning a model per user isn't |
 | Human-only writes to `labels` | writing confident model answers as labels | avoids self-reinforcing errors (THEORY §5.1) |
 | Audit sampler + sibling flags | trust confidence; review everything | the only way to catch confident errors at a fixed small human cost |

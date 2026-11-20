@@ -4,6 +4,8 @@ Per transaction, a CASCADE from cheapest/most-trusted to most-expensive/least-tr
 
     tripwire  - text looks like a prompt injection?        -> needs_review   (never let the model decide)
     rules     - user rules, then rules compiled from labels -> categorized    (confidence 1.0, 0 tokens)
+    transfer  - mirrored by an equal, opposite entry in another
+                of your accounts (see transfers.py)         -> Transfers:Self  (confidence 1.0, 0 tokens)
     LLM       - batch structured output + verified examples -> categorized if confidence >= threshold
                                                               AND the direction sensor agrees
     otherwise                                               -> needs_review   (a human decides)
@@ -25,6 +27,7 @@ from dataclasses import asdict, dataclass
 from ledger_agent.categories import INCOME_PREFIX
 from ledger_agent.categorize.llm_categorizer import categorize_batch, retrieve_examples
 from ledger_agent.categorize.rules import first_match, load_rules
+from ledger_agent.categorize.transfers import TRANSFER_CATEGORY, counterpart_can_follow, find_counterpart
 from ledger_agent.config import Settings
 from ledger_agent.db import transaction
 from ledger_agent.llm.client import BudgetExceeded, LLMClient, LLMError
@@ -41,7 +44,8 @@ _BIDIRECTIONAL = {"Transfers:Self", "Transfers:To People", "Investments", "Other
 @dataclass
 class RunStats:
     processed: int = 0
-    by_rule: int = 0
+    by_rule: int = 0              # every deterministic posting, including transfer matches
+    transfer_matches: int = 0     # of which: own-account transfers matched to their other side
     by_llm: int = 0
     to_review: int = 0
     suspicious: int = 0
@@ -144,6 +148,15 @@ def _process_batch(conn: sqlite3.Connection, llm: LLMClient | None, settings: Se
             conn.execute("UPDATE rules SET hits = hits + 1 WHERE id = ?", (rule.id,))
             _mark(conn, t["id"], status="categorized", category=rule.category, source="rule", confidence=1.0,
                   rule_id=rule.id)
+            continue
+        other = find_counterpart(conn, t)
+        if other is not None:
+            stats.by_rule += 1
+            stats.transfer_matches += 1
+            _mark(conn, t["id"], status="categorized", category=TRANSFER_CATEGORY, source="rule", confidence=1.0)
+            if counterpart_can_follow(other):
+                _mark(conn, other["id"], status="categorized", category=TRANSFER_CATEGORY, source="rule",
+                      confidence=1.0)
             continue
         for_llm.append(t)
 

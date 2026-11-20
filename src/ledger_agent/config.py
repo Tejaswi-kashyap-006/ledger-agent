@@ -9,7 +9,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Optional
 
-from pydantic import Field
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,7 +20,10 @@ class Settings(BaseSettings):
     db_path: Path = Path("data/ledger.db")
 
     # --- LLM (OpenAI) ----------------------------------------------------------------------
-    # OPENAI_API_KEY / OPENAI_BASE_URL are read by the OpenAI SDK itself (no prefix).
+    # Read without the LEDGER_ prefix, from the environment or .env, so a key in .env just works.
+    # A real environment variable wins over .env (pydantic-settings precedence).
+    openai_api_key: Optional[SecretStr] = Field(None, validation_alias=AliasChoices("OPENAI_API_KEY"))
+    openai_base_url: Optional[str] = Field(None, validation_alias=AliasChoices("OPENAI_BASE_URL"))
     model_bulk: str = "gpt-5.4-mini"          # high-volume, structured work (categorization, import mapping)
     model_agent: str = "gpt-5.4"              # interactive Q&A agent and report writing
     reasoning_effort_bulk: Optional[Literal["none", "minimal", "low", "medium", "high"]] = "low"

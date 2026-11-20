@@ -34,7 +34,8 @@ class LedgerService:
         self.conn = conn or connect(self.settings.db_path)
         memory.ensure_blocks(self.conn)
         if llm is _AUTO:
-            llm = OpenAIClient(self.settings, self.conn) if os.environ.get("OPENAI_API_KEY") else None
+            has_key = self.settings.openai_api_key is not None or bool(os.environ.get("OPENAI_API_KEY"))
+            llm = OpenAIClient(self.settings, self.conn) if has_key else None
         self.llm: Optional[LLMClient] = llm  # type: ignore[assignment]
 
     def close(self) -> None:

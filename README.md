@@ -21,8 +21,8 @@ prompt injection, audit logs, evals in CI). **One process serves both the web ap
 ```
 statement.csv ─▶ read & find table ─▶ learn/reuse import profile ─▶ parse + validate ─▶ dedupe ─▶ SQLite
                                         (procedural memory)          (balance sensor)
-pending txns ─▶ injection tripwire ─▶ rules ─▶ LLM (structured, few-shot from verified labels) ─▶ sensors
-                   │                   │ 0 tokens        │ confidence ≥ 0.8 and direction ok
+pending txns ─▶ injection tripwire ─▶ rules + own-account transfer match ─▶ LLM (structured, few-shot) ─▶ sensors
+                   │                   │ 0 tokens                           │ confidence ≥ 0.8 and direction ok
                    ▼                   ▼                 ▼
                human review ◀── low confidence / flags   categorized ──▶ audit sample (spot-check) ──▶ human
                    │
@@ -67,7 +67,7 @@ Everything in the UI is also available from the terminal (`ledger import`, `proc
 **Check it:**
 
 ```powershell
-pytest                                         # backend: 93 tests, offline
+pytest                                         # backend: 100 tests, offline
 python evals/run_evals.py --fake               # offline eval: learning curve, safety, grounding
 cd ui; npm run typecheck; npm test             # frontend: strict TS + 37 tests
 ```
@@ -127,19 +127,24 @@ HTTP API (interactive docs at `/docs`): `POST /v1/imports`, `POST /v1/process`, 
 
 | month | automation | auto accuracy | silent errors | human reviews + audits | rule / model |
 |---|---:|---:|---:|---:|---:|
-| 2026-06 | 77% | 90% | 7.7% | 10 + 5 | 0 / 30 |
-| 2026-07 | 98% | 100% | 0.0% | 1 + 5 | 4 / 37 |
-| 2026-08 | 100% | 100% | 0.0% | 0 + 5 | 6 / 34 |
+| 2026-06 | 82% | 91% | 7.7% | 8 + 5 | 2 / 30 |
+| 2026-07 | 98% | 100% | 0.0% | 1 + 5 | 6 / 35 |
+| 2026-08 | 100% | 100% | 0.0% | 0 + 5 | 8 / 32 |
 
 Without audits (`--audit 0`), silent errors stay around 7.5% every month: the keyword model files
 "THIRD WAVE CO**FFEE**" under *Fees* with high confidence, and no uncertainty-based queue ever surfaces
-it. See [docs/THEORY.md §4](docs/THEORY.md). Run the same eval against OpenAI (drop `--fake`) to also
+it. See [docs/THEORY.md §4](docs/THEORY.md).
+
+Card bill payments are matched deterministically: a debit in one of your accounts with an equal and
+opposite credit in another within 4 days (and no other candidate) is posted as *Transfers:Self* without the
+model. In a live run without household memory, `gpt-5.4-mini` had filed the bill under *Loans & EMI* at
+0.95 confidence, which inflated spending; see `categorize/transfers.py`. Run the same eval against OpenAI (drop `--fake`) to also
 get Q&A pass@1 and pass^3.
 
 ## Configuration
 
 Everything is an env var with the `LEDGER_` prefix (or a `.env` file); see `.env.example` and
-`src/ledger_agent/config.py`. The most important ones: `OPENAI_API_KEY`, `LEDGER_MODEL_BULK`
+`src/ledger_agent/config.py`. The most important ones: `OPENAI_API_KEY` (the environment or `.env`; the environment wins), `LEDGER_MODEL_BULK`
 (default `gpt-5.4-mini`), `LEDGER_MODEL_AGENT` (default `gpt-5.4`), `LEDGER_AUTO_ACCEPT_CONFIDENCE`
 (0.80), `LEDGER_MAX_TOKENS_PER_RUN`, `LEDGER_PRICE_INPUT_PER_MTOK` / `..._OUTPUT_...` (enable $
 tracking), and `LEDGER_API_KEY`.

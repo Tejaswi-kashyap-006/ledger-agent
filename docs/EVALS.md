@@ -50,9 +50,9 @@ Baseline measured with the offline keyword model:
 
 | month | automation | auto accuracy | silent errors | reviews + audits | rule/llm |
 |---|---:|---:|---:|---:|---:|
-| 2026-06 | 77% | 90% | 7.7% | 10 + 5 | 0/30 |
-| 2026-07 | 98% | 100% | 0.0% | 1 + 5 | 4/37 |
-| 2026-08 | 100% | 100% | 0.0% | 0 + 5 | 6/34 |
+| 2026-06 | 82% | 91% | 7.7% | 8 + 5 | 2/30 |
+| 2026-07 | 98% | 100% | 0.0% | 1 + 5 | 6/35 |
+| 2026-08 | 100% | 100% | 0.0% | 0 + 5 | 8/32 |
 
 With `--audit 0`, silent errors stay at ~7.5% every month and reviews look "better" (0 + 0).
 That's the trap: a system can look increasingly automated while quietly being wrong. Always report

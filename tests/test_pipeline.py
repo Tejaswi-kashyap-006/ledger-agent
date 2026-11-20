@@ -53,7 +53,9 @@ def test_direction_sensor_flags_income_on_debits(loaded, settings):
     process_pending(loaded, FakeLLM(parse_handler=const_handler("Income:Salary", 0.99)), settings)
     flagged = loaded.execute("SELECT COUNT(*) FROM transactions WHERE review_reason='direction_mismatch'").fetchone()[0]
     debits = loaded.execute("SELECT COUNT(*) FROM transactions WHERE amount_minor < 0").fetchone()[0]
-    assert flagged == debits
+    matched = loaded.execute("SELECT COUNT(*) FROM transactions WHERE amount_minor < 0 AND category = 'Transfers:Self'"
+                             " AND category_source = 'rule'").fetchone()[0]
+    assert matched == 3 and flagged == debits - matched                   # card bills never reach the model
     assert direction_ok("Income:Refund & Cashback", 100) and not direction_ok("Food:Delivery", 100)
     assert direction_ok("Transfers:Self", 100) and direction_ok("Transfers:Self", -100)
 

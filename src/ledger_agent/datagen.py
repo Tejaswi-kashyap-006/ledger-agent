@@ -106,7 +106,7 @@ def _savings_month(rng: random.Random, month: str, idx: int) -> list[Txn]:
     return t
 
 
-def _card_month(rng: random.Random, month: str, idx: int) -> list[Txn]:
+def _card_month(rng: random.Random, month: str, idx: int, bill_paid_minor: int) -> list[Txn]:
     days = _month_days(month)
     C = "ICICI Credit Card"
     t: list[Txn] = []
@@ -126,7 +126,10 @@ def _card_month(rng: random.Random, month: str, idx: int) -> list[Txn]:
     add(22, -rng.choice([450, 610]), "SWIGGY BANGALORE", "Food:Delivery")
     if idx == 1:
         add(21, -6840, "INDIGO AIRLINES GURGAON", "Travel:Flights & Trains")
-    add(25, rng.choice([18450, 21230, 16890]), "PAYMENT RECEIVED - THANK YOU", "Transfers:Self")
+    # the card receives exactly what savings paid towards the bill; the draw is kept (and ignored) only so the
+    # rest of the seeded data stays identical
+    rng.choice([18450, 21230, 16890])
+    add(25, bill_paid_minor / 100, "PAYMENT RECEIVED - THANK YOU", "Transfers:Self")
     t.sort(key=lambda x: (x.day, x.description))
     return t
 
@@ -164,7 +167,8 @@ def generate(seed: int = 7, months: tuple[str, ...] = ("2026-06", "2026-07", "20
     rng = random.Random(seed)
     ds = Dataset(months=list(months))
     savings_by_month = [_savings_month(rng, m, i) for i, m in enumerate(months)]
-    card_by_month = [_card_month(rng, m, i) for i, m in enumerate(months)]
+    bills = [next(-t.amount_minor for t in month if "ICICI CREDIT CARD" in t.description) for month in savings_by_month]
+    card_by_month = [_card_month(rng, m, i, bills[i]) for i, m in enumerate(months)]
 
     all_savings = [t for month in savings_by_month for t in month]
     bal_before: dict[int, int] = {}

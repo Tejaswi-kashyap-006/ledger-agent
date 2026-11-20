@@ -100,7 +100,10 @@ class OpenAIClient:
         from openai import OpenAI  # imported lazily so tests never need network libs configured
 
         self.settings = settings
-        self.client = OpenAI(timeout=settings.llm_timeout_s, max_retries=settings.llm_max_retries)
+        key = settings.openai_api_key.get_secret_value() if settings.openai_api_key else None
+        # None lets the SDK fall back to its own OPENAI_* environment variables
+        self.client = OpenAI(api_key=key, base_url=settings.openai_base_url,
+                             timeout=settings.llm_timeout_s, max_retries=settings.llm_max_retries)
         self.conn = conn
         self.meter = meter or UsageMeter()
 
