@@ -26,6 +26,10 @@ and the integrity of the ledger itself (wrong numbers lead to wrong decisions).
 | **Unauthorized API access** | someone on the LAN calls `/v1/chat` | optional bearer token with constant-time comparison; bind to 127.0.0.1 by default | no TLS in-process: use a reverse proxy when exposed |
 | **Runaway cost (denial of wallet)** | loop bug, huge upload | per-run and per-question token budgets, max turns, 10 MB upload cap, cache | budgets are per operation; add per-day limits for multi-user deployments |
 | **Data integrity** | wrong import mapping flips signs | balance reconciliation sensor, ≥95% parse rule, atomic imports, dedup | files without a balance column get weaker checks |
+| **Bill photos leave the machine unredacted** | a receipt shows a name, the last 4 card digits, an address | only when the user uploads a bill; the page says so next to the drop slot; PDF invoices with a text layer go as *redacted text* instead of an image | a photo can't be masked before sending; don't upload bills you wouldn't share with the provider |
+| **Prompt injection via a bill** | text printed on a receipt tells the model to report a different total | enum-constrained categories; the model's total only *matches* an entry if it equals a bank amount to the paisa, so a lie fails safe (unmatched); bills never add money | a wrong line-item category can be shown on the card (it's pencilled, i.e. marked as the model's) |
+| **Uploaded files served back** | a crafted file served as HTML runs script | type sniffed from bytes (PNG/JPEG/WebP/PDF only), served with its sniffed type, `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src 'none'`; 8 MB cap | none known |
+| **PDF statement password** | the password to a locked e-statement | used once to open the file in memory; never stored, logged or sent to the model; the UI clears it after posting | it crosses the API like the file does: use TLS when the server isn't local |
 | **Secrets in logs** | API key or narration text logged | logs carry ids, counts and purposes, not prompt contents or keys | error messages from the provider are logged (truncated) |
 
 ## Data handling
@@ -33,7 +37,8 @@ and the integrity of the ledger itself (wrong numbers lead to wrong decisions).
 - **Sent to the provider:** redacted narrations, merchant keys, amounts, dates, channels, the household
   memory block, verified examples (redacted), chat questions, tool outputs for the Q&A agent (which can
   include transaction rows).
-- **Never sent:** raw account/card numbers, phone numbers, e-mails, person-like UPI handles (masked), the
+- **Sent only when you upload a bill:** the bill photo as an image, or a PDF invoice's text (redacted).
+- **Never sent:** PDF statement files or their passwords (statements are parsed locally), raw account/card numbers, phone numbers, e-mails, person-like UPI handles (masked), the
   API key, other tables.
 - **Retention:** requests use `store=False` (not stored for later retrieval via the API). Provider-side abuse-monitoring
   retention follows the provider's policy. Check it, and your organization's zero-retention options, if you need stricter guarantees.

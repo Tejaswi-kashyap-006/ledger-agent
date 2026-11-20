@@ -8,7 +8,7 @@
 // baseline, and requires baseline mod 28 == 18 (2px above the rule drawn at --rule-y = 20). Exit code 1 on failure.
 import { open } from "./cdp.mjs";
 const width = Number(process.argv[2] ?? 1440);
-const routes = ["/", "/import", "/review", "/audit", "/ledger", "/ask", "/reports", "/recurring", "/settings"];
+const routes = ["/", "/import", "/bills", "/review", "/audit", "/ledger", "/ask", "/reports", "/recurring", "/settings"];
 const p = await open({ width, height: 1000 });
 const CHECK = `(() => {
   const LINE = 28, RULE_Y = 20, WANT = 18, TOL = 1.6;

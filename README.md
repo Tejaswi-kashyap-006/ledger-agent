@@ -1,10 +1,10 @@
 # Ledger Agent
 
-**An AI bookkeeper for messy Indian bank statements.** Import CSV exports from any bank or card. It
-learns the file format, categorizes every transaction, learns from your corrections until it barely
+**An AI bookkeeper for messy Indian bank statements.** Import CSV exports or PDF e-statements (password-locked
+ones too) from any bank or card, and photograph shop bills. It learns the file format, categorizes every transaction, learns from your corrections until it barely
 needs the model, catches its own confident mistakes, reconciles balances, finds subscriptions and price
-hikes, writes a monthly report whose numbers are checked, and answers questions like *"how much did we
-spend eating out in July?"*
+hikes, pins each bill to the payment it explains (with its line items split by category), writes a monthly
+report whose numbers are checked, and answers questions like *"how much did we spend eating out in July?"*
 
 It's the capstone of a ten-project course on agent harness engineering (the loop, the harness, context,
 memory, long-horizon runs, multi-agent, evals): every idea from those projects, P01-P10, applied to one
@@ -48,12 +48,12 @@ cd ledger-agent
 python -m venv .venv; .venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
 cd ui; npm install; npm run build; cd ..       # builds the web UI into the package
-python scripts/seed_demo_db.py data/demo.db    # 3 months, 2 accounts, categorised offline
+python scripts/seed_demo_db.py data/demo.db    # 3 months, 2 accounts, 2 bills pinned, categorised offline
 $env:LEDGER_DB_PATH = "data/demo.db"
 ledger serve                                   # open http://127.0.0.1:8000
 ```
 
-**Use it for real (OpenAI):**
+**Use it for real (OpenAI):** put `OPENAI_API_KEY=sk-...` in a `.env` file in this folder (it's git-ignored), or:
 
 ```powershell
 $env:OPENAI_API_KEY = "sk-..."
@@ -61,15 +61,25 @@ Remove-Item Env:LEDGER_DB_PATH                 # back to your own ledger at data
 ledger serve                                   # then: Import → Review → Overview → Ask
 ```
 
+**A five-minute demo** on the seeded database, with a key set (about 5 model calls, under 10k tokens):
+
+1. **Import** `sample_data/hdfc_savings_2026-09.pdf` as *HDFC Savings*: a two-page PDF e-statement with wrapped
+   narrations comes back with 28 new rows and a RECONCILED stamp. Then *Categorise them now*.
+2. **Bills**: drop `sample_data/receipts/bigbasket_2026-08-18.png` (a photo) and `amazon_invoice_2026-08-16.pdf`.
+   Each is read, checked to add up, and pinned to its August payment. The invoice splits one ₹1,299 card payment
+   into *Education* (the book) and *Shopping · Electronics* (the case and its GST).
+3. **Review**: the Apollo Pharmacy entry now shows what its bill says (₹581 of medicine, ₹309 of personal care).
+4. **Ledger**: entries with a bill carry a BILL stamp; card bill payments carry RULE (matched transfers).
+
 Everything in the UI is also available from the terminal (`ledger import`, `process`, `review`, `audit`, `ask`,
 `report`, `subs`, `stats`), and over HTTP (docs at `/docs`).
 
 **Check it:**
 
 ```powershell
-pytest                                         # backend: 100 tests, offline
+pytest                                         # backend: 115 tests, offline
 python evals/run_evals.py --fake               # offline eval: learning curve, safety, grounding
-cd ui; npm run typecheck; npm test             # frontend: strict TS + 37 tests
+cd ui; npm run typecheck; npm test             # frontend: strict TS + 44 tests
 ```
 
 ## The web app
@@ -89,7 +99,8 @@ for the code). The trust model of the backend is visible in the interface:
 | Page | What it's for |
 |---|---|
 | **Overview** | the month's folio: net figure, *Jama · Naam* (in · out), where it went, trend, what's waiting |
-| **Import** | drop CSVs; each comes back as a receipt with new / duplicate / rejected rows and the balance stamp |
+| **Import** | drop CSV or PDF statements (a password field appears for locked PDFs); each comes back as a receipt with new / duplicate / rejected rows and the balance stamp |
+| **Bills** | "The bill spike": drop bill photos or PDF invoices; each is read, checked to add up, and pinned to the payment it explains, split by category |
 | **Review** | one entry at a time. `Enter` initials the suggestion, `1`–`9` quick categories, `/` search, `S` skip |
 | **Audit** | spot-check the model's *confident* answers (the only way to catch silent errors) |
 | **Ledger** | every entry, filterable; correct any category in place (it teaches the book like Review does) |
@@ -105,7 +116,7 @@ motion respected, and it works down to 390px wide.
 
 | Command | What it does |
 |---|---|
-| `ledger import FILE... --account NAME` | read, learn or reuse the format profile, validate (parse rate + running balance), dedupe, store |
+| `ledger import FILE... --account NAME [--password PW]` | CSV or PDF: read, learn or reuse the format profile, validate (parse rate + running balance), dedupe, store |
 | `ledger process [--resume RUN] [--limit N]` | run the categorization cascade in checkpointed batches under a token budget |
 | `ledger review` | human review queue (low confidence, sensor flags, suspicious text, errors) |
 | `ledger audit [--n 5]` | spot-check confident model answers: the only way to catch silent errors |
@@ -115,9 +126,9 @@ motion respected, and it works down to 390px wide.
 | `ledger subs` | recurring payments, monthly cost, price changes, next expected date |
 | `ledger memory [--set 'block=text']` | view/edit pinned memory (household / preferences / goals) and facts |
 | `ledger stats` | automation rate, review backlog, rules, LLM calls/tokens/cost by purpose, recent runs |
-| `ledger demo` / `ledger serve` | sample statements / the web app + HTTP API |
+| `ledger demo` / `ledger serve` | sample statements (CSV + one PDF) / the web app + HTTP API |
 
-HTTP API (interactive docs at `/docs`): `POST /v1/imports`, `POST /v1/process`, `GET /v1/review`, `GET /v1/audit`,
+HTTP API (interactive docs at `/docs`): `POST /v1/imports` (CSV or PDF, optional `password`), `POST|GET /v1/receipts`, `GET|DELETE /v1/receipts/{id}`, `GET /v1/receipts/{id}/file`, `POST /v1/receipts/{id}/attach`, `POST /v1/process`, `GET /v1/review`, `GET /v1/audit`,
 `POST /v1/transactions/{id}/category|accept`, `GET /v1/transactions`, `GET|POST|DELETE /v1/rules`, `POST /v1/chat`,
 `GET /v1/conversations/{id}`, `GET /v1/reports/{month}?format=md`, `GET /v1/facts/{month}`, `GET /v1/trend`,
 `GET /v1/months`, `GET /v1/accounts`, `GET /v1/categories`, `GET /v1/subscriptions`, `GET|PUT /v1/memory/blocks[/{label}]`,
@@ -181,8 +192,11 @@ outside this repository; this table is the map from each idea to its code.
 
 ## Limitations and roadmap
 
-- CSV only. PDF statements need a table-extraction step before `read_table`.
+- PDF statements need a text layer. Scanned statements are refused with a clear message; a vision step for them
+  would slot in before `read_pdf_table`. The column rebuild is tested on generated layouts, so a bank's unusual
+  PDF may need its header synonyms added; the balance check makes a bad rebuild fail loudly, never silently.
+- Bills are evidence: their line-item split is shown, not booked. Booking one payment under two categories
+  (split transactions) isn't modelled yet. Bill photos go to the model provider unredacted (SECURITY.md).
 - Single user, SQLite. The path to multi-user is in [OPERATIONS.md](docs/OPERATIONS.md#scaling-path).
 - Keyword BM25 for fact recall. Swap in embeddings (`sqlite-vec`) once you have hundreds of facts.
-- Split transactions (one payment, two categories) aren't modelled yet.
 - The model's confidence isn't calibrated. The threshold is a knob you should tune with the eval (THEORY §3).

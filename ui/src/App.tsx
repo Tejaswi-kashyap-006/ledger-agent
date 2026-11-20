@@ -4,6 +4,7 @@ import { IndexTabs, Sheet, Spine, FolioHead, type TabDef } from "./components/Bo
 import { SlipProvider } from "./components/Toast";
 import { api } from "./lib/api";
 import { AskPage } from "./pages/Ask";
+import { BillsPage } from "./pages/Bills";
 import { FolioPage } from "./pages/Folio";
 import { LedgerPage } from "./pages/LedgerPage";
 import { PostStatementPage } from "./pages/PostStatement";
@@ -38,6 +39,7 @@ export function App() {
   const tabs: TabDef[] = [
     { to: "/", label: "Overview" },
     { to: "/import", label: "Import" },
+    { to: "/bills", label: "Bills" },
     { to: "/review", label: "Review", count: backlog },
     { to: "/audit", label: "Audit" },
     { to: "/ledger", label: "Ledger" },
@@ -55,6 +57,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<FolioPage />} />
           <Route path="/import" element={<PostStatementPage />} />
+          <Route path="/bills" element={<BillsPage />} />
           <Route path="/review" element={<ReviewPage mode="review" />} />
           <Route path="/audit" element={<ReviewPage mode="audit" />} />
           <Route path="/ledger" element={<LedgerPage />} />

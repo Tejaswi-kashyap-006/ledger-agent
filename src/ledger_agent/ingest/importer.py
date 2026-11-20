@@ -1,4 +1,4 @@
-"""Import a statement file: read -> resolve profile -> parse -> de-duplicate -> store. One DB transaction."""
+"""Import a statement file (CSV or PDF): read -> resolve profile -> parse -> de-duplicate -> store. One DB transaction."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from ledger_agent.db import transaction
 from ledger_agent.ingest.csv_reader import read_table
 from ledger_agent.ingest.merchant import extract_merchant
+from ledger_agent.ingest.pdf_reader import is_pdf, read_pdf_table
 from ledger_agent.ingest.normalize import fingerprint, normalize_description
 from ledger_agent.ingest.profiles import resolve_profile
 from ledger_agent.llm.client import LLMClient
@@ -37,8 +38,9 @@ def get_or_create_account(conn: sqlite3.Connection, name: str, currency: str = "
 
 
 def import_statement(conn: sqlite3.Connection, llm: LLMClient | None, account: str, filename: str,
-                     data: bytes, currency: str = "INR") -> ImportResult:
-    table = read_table(data)
+                     data: bytes, currency: str = "INR", password: str | None = None) -> ImportResult:
+    # sniff the content, not the extension: a statement saved as .csv.pdf or renamed still imports
+    table = read_pdf_table(data, password) if is_pdf(data) else read_table(data)
     with transaction(conn):
         account_id = get_or_create_account(conn, account, currency)
         profile_id, profile, check = resolve_profile(conn, llm, table)

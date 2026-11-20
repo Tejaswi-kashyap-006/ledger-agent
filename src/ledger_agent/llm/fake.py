@@ -39,14 +39,14 @@ class FakeLLM:
         self.parse_calls: list[dict] = []
         self.step_calls: list[dict] = []
 
-    def parse(self, *, purpose: str, instructions: str, input: str, schema: type, model: Optional[str] = None,
+    def parse(self, *, purpose: str, instructions: str, input: Any, schema: type, model: Optional[str] = None,
               effort: Optional[str] = None, cache: bool = True):
         self.meter.check()
         self.parse_calls.append({"purpose": purpose, "instructions": instructions, "input": input})
         if self.parse_handler is None:
             raise LLMError("FakeLLM has no parse_handler")
         out = self.parse_handler(purpose, instructions, input, schema)
-        self.meter.add(Usage(len(input) // 4, 50))
+        self.meter.add(Usage(len(input if isinstance(input, str) else json.dumps(input)) // 4, 50))
         if isinstance(out, Exception):
             raise out
         return out if isinstance(out, BaseModel) else schema.model_validate(out)

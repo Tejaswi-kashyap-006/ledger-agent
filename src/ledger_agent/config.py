@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     openai_base_url: Optional[str] = Field(None, validation_alias=AliasChoices("OPENAI_BASE_URL"))
     model_bulk: str = "gpt-5.4-mini"          # high-volume, structured work (categorization, import mapping)
     model_agent: str = "gpt-5.4"              # interactive Q&A agent and report writing
+    model_receipts: str = "gpt-5.4-mini"      # reads receipt photos (needs a vision-capable model)
     reasoning_effort_bulk: Optional[Literal["none", "minimal", "low", "medium", "high"]] = "low"
     reasoning_effort_agent: Optional[Literal["none", "minimal", "low", "medium", "high"]] = "medium"
     llm_timeout_s: float = 60.0

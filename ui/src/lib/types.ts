@@ -47,6 +47,7 @@ export interface ReviewItem {
   review_reason: string | null;
   llm_reason: string | null;
   merchant_rows?: number;
+  receipt_id?: number | null;
 }
 
 export interface CorrectionResult {
@@ -72,7 +73,7 @@ export interface ImportResult {
 }
 
 export interface RunStats {
-  processed: number; by_rule: number; by_llm: number; to_review: number; suspicious: number;
+  processed: number; by_rule: number; transfer_matches?: number; by_llm: number; to_review: number; suspicious: number;
   llm_errors: number; direction_flags: number; batches: number;
 }
 export interface ProcessResult { run_id: string; status: string; tokens: number; stats: RunStats }
@@ -89,6 +90,7 @@ export interface Txn {
   status: TxnStatus;
   review_reason: string | null;
   account: string;
+  receipt_id?: number | null;
 }
 export interface TxnPage { total: number; items: Txn[] }
 export interface TxnQuery { q?: string; category?: string; status?: string; month?: string; limit?: number; offset?: number }
@@ -119,3 +121,26 @@ export interface NewRule { pattern_type: Rule["pattern_type"]; pattern: string; 
 
 export interface MemoryBlock { label: string; description: string; value: string; char_limit: number }
 export interface MemoryFact { id: number; text: string; importance: number; created_at: string; last_accessed: string }
+
+// Bills (shop receipts and invoices): evidence pinned to a bank entry, never an entry of their own.
+export interface BillItem { description: string; amount_minor: number; category: string }
+export interface BillCandidate {
+  id: number; date: string; amount_minor: number; merchant: string; description: string; account: string; name_overlap: number;
+}
+export interface Bill {
+  receipt_id: number;
+  merchant: string;
+  receipt_date: string | null;
+  total_minor: number;
+  items: BillItem[];
+  items_add_up: boolean;
+  match_status: "matched" | "unmatched" | "user";
+  transaction_id: number | null;
+  duplicate: boolean;
+  candidates: BillCandidate[];
+}
+export interface BillRow {
+  id: number; filename: string; merchant: string; receipt_date: string | null; total_minor: number;
+  match_status: Bill["match_status"]; transaction_id: number | null; created_at: string; item_count: number;
+  items_add_up: number; transaction_date: string | null; transaction_merchant: string | null;
+}

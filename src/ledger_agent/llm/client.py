@@ -88,7 +88,7 @@ class UsageMeter:
 class LLMClient(Protocol):
     meter: UsageMeter
 
-    def parse(self, *, purpose: str, instructions: str, input: str, schema: type[T],
+    def parse(self, *, purpose: str, instructions: str, input: str | list[dict], schema: type[T],
               model: Optional[str] = None, effort: Optional[str] = None, cache: bool = True) -> T: ...
 
     def step(self, *, purpose: str, instructions: str, items: list[dict], tools: list[dict],
@@ -135,8 +135,9 @@ class OpenAIClient:
         return Usage(getattr(u, "input_tokens", 0) or 0, getattr(u, "output_tokens", 0) or 0)
 
     # ------------------------------------------------------------------ structured output
-    def parse(self, *, purpose: str, instructions: str, input: str, schema: type[T],
+    def parse(self, *, purpose: str, instructions: str, input: str | list[dict], schema: type[T],
               model: Optional[str] = None, effort: Optional[str] = None, cache: bool = True) -> T:
+        # `input` is text, or Responses-API message items when an image is attached (receipts)
         model = model or self.settings.model_bulk
         effort = effort if effort is not None else self.settings.reasoning_effort_bulk
         key = hashlib.sha256(json.dumps(

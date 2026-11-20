@@ -101,6 +101,32 @@
 .receipts { display: flex; flex-wrap: wrap; gap: var(--line) var(--s3); align-items: flex-start; }
 .next-step { margin-top: var(--line); align-items: flex-start; padding-left: var(--s2); border-left: 3px solid var(--cleared); }
 
+/* ---- bills: shop receipts, on the same slip as the import receipts ---------------------------------- */
+.bill { max-width: 380px; }
+.bill .receipt__head { display: grid; }
+.bill__merchant { font-family: var(--font-body); font-weight: 700; font-size: var(--t-md); line-height: 21px; }
+.bill__photo { display: block; width: 100%; max-height: 196px; object-fit: cover; object-position: top;
+  margin: var(--s1) 0; border: 1px solid var(--rule); filter: saturate(0.85); }
+.bill__items .receipt__line > :first-child { min-width: 0; overflow-wrap: anywhere; }
+.bill__items .receipt__line > :last-child, .bill__total > :last-child { flex: none; }
+.bill__check { display: flex; align-items: center; gap: var(--s1); font-family: var(--font-body); font-size: var(--t-xs);
+  color: var(--ink-2); margin-top: var(--s1); }
+.bill__check.is-ok { color: var(--cleared); }
+.bill .kicker { margin-top: var(--s2); }
+.bill-split li { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2); }
+.bill-split .pencil { font-size: 1.0625rem; line-height: var(--line); }
+.bill-split .fig { font-size: var(--t-sm); }
+.bill__pin { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); margin-top: var(--s2); }
+.bill__pin .receipt__stamp { margin-top: 0; }
+.bill__unpinned { margin-top: var(--s2); font-family: var(--font-body); }
+.bill__candidates { display: grid; gap: var(--s1); }
+.bill__candidates .quick-pick { width: 100%; text-align: left; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s1); }
+/* the BILL stamp beside a payee links to the spike; it is a small stamp, like RULE, so it never moves the ruling */
+.bill-mark { margin-left: var(--s1); text-decoration: none; }
+.bill-mark:hover .stamp, .bill-mark:focus-visible .stamp { --stamp-ink: var(--ink); }
+.entry-card__bill { padding: var(--s2) 0; }   /* the suggestion block below draws the dashed rule */
+.entry-card__bill .bill-split { max-width: 420px; }
+
 /* ---- ledger ------------------------------------------------------------------------------------------- */
 .filters { display: grid; grid-template-columns: 2fr repeat(3, 1fr); gap: var(--line) var(--s3); align-items: end; }
 /* a ledger entry is two ruled lines: the payee, then narration · account */
@@ -208,6 +234,16 @@
   .charges td:nth-child(6) { grid-column: 2; grid-row: 3; text-align: right; }
 }
 
+/* model usage: six columns don't fit a narrow column, so each purpose becomes three lines (name, then figures
+   labelled in place, since the header row is hidden) */
+@container (max-width: 560px) {
+  .usage-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .usage-table, .usage-table tbody { display: block; }
+  .usage-table tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--s2); }
+  .usage-table th, .usage-table td { padding: 0; text-align: left; line-height: var(--line); }
+  .usage-table th { grid-column: 1 / -1; }
+  .usage-table td::before { content: attr(data-label) " "; font-family: var(--font-body); font-size: var(--t-xs); color: var(--muted); line-height: 1; }
+}
 @container (max-width: 440px) {
   .rules-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .rules-table, .rules-table tbody { display: block; }

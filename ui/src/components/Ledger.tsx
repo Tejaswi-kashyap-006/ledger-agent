@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { money, rupees, splitCategory, type SignMode } from "../lib/format";
 import type { CategorySource } from "../lib/types";
-import { AlertIcon, CrossIcon, EyeIcon, PencilIcon, RuleIcon, ScaleIcon, TickIcon } from "./Icons";
+import { AlertIcon, BillIcon, CrossIcon, EyeIcon, PencilIcon, PinIcon, RuleIcon, ScaleIcon, TickIcon } from "./Icons";
 
 export function Amount({ minor, sign = "negative", className = "" }: { minor: number; sign?: SignMode; className?: string }) {
   const dir = minor < 0 ? "out" : minor > 0 ? "in" : "zero";
@@ -18,7 +18,8 @@ export function Rupees({ value, sign }: { value: number; sign?: SignMode }) {
   return <span className="amt">{rupees(value, sign)}</span>;
 }
 
-export type StampKind = "reconciled" | "mismatch" | "rule" | "verified" | "suspicious" | "posted" | "audit" | "unchecked";
+export type StampKind = "reconciled" | "mismatch" | "rule" | "verified" | "suspicious" | "posted" | "audit" | "unchecked"
+  | "pinned" | "bill";
 
 const STAMPS: Record<StampKind, { label: string; icon: ReactNode; tone: string }> = {
   reconciled: { label: "Reconciled", icon: <ScaleIcon size={14} />, tone: "cleared" },
@@ -29,6 +30,8 @@ const STAMPS: Record<StampKind, { label: string; icon: ReactNode; tone: string }
   posted: { label: "Posted", icon: <TickIcon size={14} />, tone: "cleared" },
   audit: { label: "Audit", icon: <EyeIcon size={14} />, tone: "pencil" },
   unchecked: { label: "No balance column", icon: <CrossIcon size={12} />, tone: "muted" },
+  pinned: { label: "Pinned to entry", icon: <PinIcon size={14} />, tone: "cleared" },
+  bill: { label: "Bill", icon: <BillIcon size={12} />, tone: "ink" },
 };
 
 /** A rubber stamp. `size="sm"` is the flat inline version used in tables. */

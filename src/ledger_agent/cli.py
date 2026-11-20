@@ -28,7 +28,7 @@ def cmd_import(a: argparse.Namespace) -> None:
     svc = _svc()
     for path in a.files:
         p = Path(path)
-        r = svc.import_file(a.account, p.name, p.read_bytes())
+        r = svc.import_file(a.account, p.name, p.read_bytes(), a.password)
         color = "green" if r.balance_check in ("ok", "no_balance_column") else "yellow"
         console.print(f"[bold]{p.name}[/] -> {r.account} ({r.profile_name} profile): {r.rows_new} new, "
                       f"{r.rows_duplicate} duplicates, {r.rows_rejected} rejected; balance [{color}]{r.balance_check}[/]")
@@ -172,7 +172,7 @@ def cmd_stats(a: argparse.Namespace) -> None:
 
 
 def cmd_demo(a: argparse.Namespace) -> None:
-    from ledger_agent.datagen import HOUSEHOLD_MEMORY, generate
+    from ledger_agent.datagen import HOUSEHOLD_MEMORY, demo_pdf_month, generate
 
     out = Path(a.dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -180,7 +180,9 @@ def cmd_demo(a: argparse.Namespace) -> None:
     for name, data in ds.files.items():
         (out / name).write_bytes(data)
     (out / "household_memory.txt").write_text(HOUSEHOLD_MEMORY, encoding="utf-8")
-    console.print(f"wrote {len(ds.files)} statements to {out}/ (+ household_memory.txt). Try:\n"
+    pdf_name, pdf, _ = demo_pdf_month(ds, seed=a.seed)
+    (out / pdf_name).write_bytes(pdf)
+    console.print(f"wrote {len(ds.files)} CSV statements and {pdf_name} to {out}/ (+ household_memory.txt). Try:\n"
                   f'  ledger memory --set "household={HOUSEHOLD_MEMORY.splitlines()[0]}"\n'
                   f'  ledger import {out}/hdfc_savings_2026-06.csv --account "HDFC Savings"\n'
                   f'  ledger import {out}/icici_card_2026-06.csv --account "ICICI Credit Card"\n'
@@ -199,9 +201,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="ledger", description="AI bookkeeper for bank statements")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    s = sub.add_parser("import", help="import statement CSV files")
+    s = sub.add_parser("import", help="import statement files (CSV or PDF)")
     s.add_argument("files", nargs="+")
     s.add_argument("--account", required=True)
+    s.add_argument("--password", help="password for a locked PDF statement (used once, never stored)")
     s.set_defaults(fn=cmd_import)
 
     s = sub.add_parser("process", help="categorize pending transactions")

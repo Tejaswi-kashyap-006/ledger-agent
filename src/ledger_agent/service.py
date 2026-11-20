@@ -23,6 +23,7 @@ from ledger_agent.ingest.importer import ImportResult, import_statement
 from ledger_agent.insights.recurring import Recurring, detect_recurring
 from ledger_agent.insights.report import MonthlyReport, write_report
 from ledger_agent.llm.client import LLMClient, OpenAIClient, UsageMeter
+from ledger_agent import receipts as receipts_mod
 
 _AUTO = object()
 
@@ -46,13 +47,33 @@ class LedgerService:
             self.llm.meter = UsageMeter(max_tokens)
 
     # --------------------------------------------------------------------- ingest & process
-    def import_file(self, account: str, filename: str, data: bytes) -> ImportResult:
+    def import_file(self, account: str, filename: str, data: bytes, password: str | None = None) -> ImportResult:
         self._budget(50_000)
-        return import_statement(self.conn, self.llm, account, filename, data, self.settings.currency)
+        return import_statement(self.conn, self.llm, account, filename, data, self.settings.currency, password)
 
     def process(self, run_id: str | None = None, limit: int | None = None) -> RunReport:
         self._budget(self.settings.max_tokens_per_run)
         return process_pending(self.conn, self.llm, self.settings, run_id=run_id, limit=limit)
+
+    # --------------------------------------------------------------------- receipts
+    def add_receipt(self, filename: str, data: bytes) -> receipts_mod.ReceiptResult:
+        self._budget(30_000)
+        return receipts_mod.add_receipt(self.conn, self.llm, filename, data, self.settings.model_receipts)
+
+    def receipts(self) -> list[dict]:
+        return receipts_mod.list_receipts(self.conn)
+
+    def receipt(self, receipt_id: int) -> receipts_mod.ReceiptResult:
+        return receipts_mod.get_receipt(self.conn, receipt_id)
+
+    def attach_receipt(self, receipt_id: int, transaction_id: int | None) -> receipts_mod.ReceiptResult:
+        return receipts_mod.attach(self.conn, receipt_id, transaction_id)
+
+    def receipt_content(self, receipt_id: int) -> tuple[bytes, str]:
+        return receipts_mod.receipt_content(self.conn, receipt_id)
+
+    def delete_receipt(self, receipt_id: int) -> None:
+        receipts_mod.delete_receipt(self.conn, receipt_id)
 
     # --------------------------------------------------------------------- review & rules
     def review_queue(self, limit: int = 50) -> list[dict]:

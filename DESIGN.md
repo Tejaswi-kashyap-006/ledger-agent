@@ -169,7 +169,8 @@ instantly, and the stamp becomes a simple fade.
 | Route | Heading | What it holds |
 |---|---|---|
 | `/` | **{Month} folio** (e.g. "September folio") | the hero figure *Net this month*; two ruled columns **Jama · money in** and **Naam · money out**; spend by category as ruled rows with inline bars; in the margin, the in-vs-out trend and a haldi note "13 entries await your initials" |
-| `/import` | **Post a statement** | a drop slot styled as a letterbox; each result comes back as a printed receipt (mono, torn edge) with rows new, duplicate and rejected, and a RECONCILED or BALANCE MISMATCH stamp |
+| `/import` | **Post a statement** | a drop slot styled as a letterbox; each result comes back as a printed receipt (mono, torn edge) with rows new, duplicate and rejected, and a RECONCILED or BALANCE MISMATCH stamp. CSV or PDF; a password field (on a rule line) appears only when a PDF is chosen |
+| `/bills` | **The bill spike** | (added 2026-11-21) shop bills and invoices, named *bills* so they never clash with the import receipts. The same letterbox; each bill is laid on the desk as the same torn-edge slip, with its photo, its lines in mono, the line-item categories in **pencil** (the model read them), a cleared tick or a haldi note for "the items add up", the split by category, and a PINNED TO ENTRY stamp, or, if nothing matched, a haldi note with the nearest entries as quick-pick buttons. Below, every bill as a ruled table (it restacks like the ledger). In the ledger, an entry with a bill carries a small BILL stamp; on the review card, the pinned bill's split appears above the model's suggestion as evidence |
 | `/review` | **Entries awaiting your initials** | one entry at a time, large, as an index card: narration, amount, and the model's pencilled suggestion with its reason. Keys: `Enter` accepts, `1`–`9` picks a suggested category, `/` searches categories, `S` skips. A counter shows how many are left and what a rule just auto-fixed ("rule compiled · 2 more fixed") |
 | `/audit` | **Spot-check the confident ones** | the same card, with copy explaining why audits exist ("the model was sure; mistakes it's sure about never reach Review") |
 | `/ledger` | **The ledger** | the full ruled table: date, narration, merchant, category (pencil, ink or RULE stamp), account, amount; search and filters in one row above; paginated by folio (month) |
@@ -186,9 +187,9 @@ exactly these, in `ui/src/components/`:
 
 `Spine` · `IndexTabs` · `Sheet` (ruled page + margin rule + margin column) · `Folio heading` ·
 `HeroFigure` · `Amount` (Plex Mono, ₹, Indian grouping, explicit − sign) · `Pencil` (model text) ·
-`Stamp` (RECONCILED / RULE / VERIFIED / SUSPICIOUS / MISMATCH, each with an icon) · `Highlight` (haldi) ·
+`Stamp` (RECONCILED / RULE / VERIFIED / SUSPICIOUS / MISMATCH / PINNED / BILL, each with an icon) · `Highlight` (haldi) ·
 `RuledTable` · `EntryCard` (review/audit) · `CategoryPicker` (combobox, keyboard-first) ·
-`Receipt` (import result) · `Button` (`ink` primary on khata, `quiet` secondary, `stamp` for commit
+`Receipt` (import result) · `BillSlip` (a shop bill, on the same slip) · `Button` (`ink` primary on khata, `quiet` secondary, `stamp` for commit
 actions) · `Field` (text inputs sitting on a rule line, no boxes) · `Toast` (a slip of paper) ·
 charts: `RuledBars`, `InOutTrend` (validated palette, tooltip, legend, table view).
 

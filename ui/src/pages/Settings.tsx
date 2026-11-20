@@ -164,16 +164,18 @@ export function SettingsPage() {
       {stats.data && stats.data.llm.length > 0 && (
         <Section title="Model usage" kicker="From the audit log of every call">
           <div className="table-scroll">
-            <table className="ruled">
+            <table className="ruled usage-table">
               <thead><tr><th scope="col">Purpose</th><th scope="col" className="num">Calls</th><th scope="col" className="num">Tokens in</th>
                 <th scope="col" className="num">Tokens out</th><th scope="col" className="num">Cache hits</th><th scope="col" className="num">Errors</th></tr></thead>
               <tbody>
                 {stats.data.llm.map((l) => (
                   <tr key={l.purpose}>
                     <th scope="row">{l.purpose.replace("_", " ")}</th>
-                    <td className="num fig">{l.calls}</td><td className="num fig">{(l.i ?? 0).toLocaleString("en-IN")}</td>
-                    <td className="num fig">{(l.o ?? 0).toLocaleString("en-IN")}</td><td className="num fig">{l.hits ?? 0}</td>
-                    <td className="num fig">{l.errors ?? 0}</td>
+                    <td className="num fig" data-label="calls">{l.calls}</td>
+                    <td className="num fig" data-label="in">{(l.i ?? 0).toLocaleString("en-IN")}</td>
+                    <td className="num fig" data-label="out">{(l.o ?? 0).toLocaleString("en-IN")}</td>
+                    <td className="num fig" data-label="cached">{l.hits ?? 0}</td>
+                    <td className="num fig" data-label="errors">{l.errors ?? 0}</td>
                   </tr>
                 ))}
               </tbody>

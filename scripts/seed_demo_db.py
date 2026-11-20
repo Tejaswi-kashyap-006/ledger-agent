@@ -3,8 +3,14 @@
     python scripts/seed_demo_db.py data/demo.db
     LEDGER_DB_PATH=data/demo.db ledger serve        # then open http://127.0.0.1:8000
 
-For UI development and screenshots: realistic volume, a review queue, an audit sample, learned rules,
-and household memory, all without spending tokens. Never point it at your real ledger.
+For UI development, screenshots and demos: realistic volume, a review queue, an audit sample, learned rules,
+household memory and two shop bills already pinned, all without spending tokens. Never point it at your real ledger.
+
+Left out on purpose, for a live demo (needs OPENAI_API_KEY):
+  sample_data/hdfc_savings_2026-09.pdf               import it on the Import page (PDF statement)
+  sample_data/receipts/bigbasket_2026-08-18.png      drop them on the Bills page (one photo, one PDF invoice)
+  sample_data/receipts/amazon_invoice_2026-08-16.pdf
+Run scripts/make_sample_documents.py first if sample_data/receipts/ is missing.
 """
 
 import sys
@@ -15,11 +21,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from ledger_agent.categorize.pipeline import process_pending  # noqa: E402
 from ledger_agent.categorize.review import review_queue, set_category  # noqa: E402
 from ledger_agent.config import Settings  # noqa: E402
-from ledger_agent.datagen import HOUSEHOLD_MEMORY, generate  # noqa: E402
+from ledger_agent.datagen import HOUSEHOLD_MEMORY, demo_receipts, generate  # noqa: E402
 from ledger_agent.db import connect  # noqa: E402
 from ledger_agent.ingest.importer import import_statement  # noqa: E402
 from ledger_agent.llm.fake import FakeLLM, keyword_parse_handler  # noqa: E402
 from ledger_agent.memory import ensure_blocks, remember, update_block  # noqa: E402
+from ledger_agent.receipts import add_receipt  # noqa: E402
+
+RECEIPTS = Path(__file__).resolve().parents[1] / "sample_data" / "receipts"
 
 
 def main(path: str) -> None:
@@ -48,7 +57,18 @@ def main(path: str) -> None:
                                  (item["id"],)).fetchone()
                 if t["status"] == "needs_review":
                     set_category(conn, item["id"], truth[(t["date"], t["amount_minor"], t["description"])])
-    print(f"seeded {db}: {conn.execute('SELECT COUNT(*) FROM transactions').fetchone()[0]} transactions")
+    # the bills a person already spiked: read with their known contents (the model is replaced, the matching isn't)
+    pinned = 0
+    for spec in demo_receipts(ds):
+        if not spec.seeded:
+            continue
+        photo = RECEIPTS / spec.filename
+        if not photo.is_file():
+            raise SystemExit(f"{photo} is missing: run scripts/make_sample_documents.py first")
+        reader = FakeLLM(parse_handler=lambda *_, s=spec: s.as_read())
+        pinned += add_receipt(conn, reader, spec.filename, photo.read_bytes()).transaction_id is not None
+    print(f"seeded {db}: {conn.execute('SELECT COUNT(*) FROM transactions').fetchone()[0]} transactions, "
+          f"{pinned} bills pinned")
 
 
 if __name__ == "__main__":

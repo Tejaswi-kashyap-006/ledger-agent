@@ -1,4 +1,4 @@
-// "Post a statement": a letterbox for CSV exports; every file comes back as a receipt.
+// "Post a statement": a letterbox for CSV and PDF statements; every file comes back as a receipt.
 import { useRef, useState, type DragEvent } from "react";
 import { Link } from "react-router-dom";
 import { FolioHead, Section, Sheet } from "../components/Book";
@@ -12,9 +12,12 @@ import type { ImportResult, ProcessResult } from "../lib/types";
 
 interface Posting { file: string; result?: ImportResult; error?: string }
 
+const isPdf = (f: File) => /\.pdf$/i.test(f.name) || f.type === "application/pdf";
+
 export function PostStatementPage() {
   const accounts = useAsync(api.accounts, []);
   const [account, setAccount] = useState("");
+  const [password, setPassword] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [over, setOver] = useState(false);
   const [postings, setPostings] = useState<Posting[]>([]);
@@ -26,9 +29,9 @@ export function PostStatementPage() {
 
   const addFiles = (list: FileList | null) => {
     if (!list) return;
-    const csv = Array.from(list).filter((f) => /\.(csv|txt)$/i.test(f.name));
-    if (csv.length < list.length) slip("Only CSV exports can be posted", "Download the statement as CSV from your bank's net-banking.", "critical");
-    setFiles((prev) => [...prev, ...csv.filter((f) => !prev.some((p) => p.name === f.name && p.size === f.size))]);
+    const ok = Array.from(list).filter((f) => /\.(csv|txt|pdf)$/i.test(f.name));
+    if (ok.length < list.length) slip("Only CSV and PDF statements can be posted", "Download the statement as CSV or PDF from your bank's net-banking. Shop bills go on the Bills page.", "critical");
+    setFiles((prev) => [...prev, ...ok.filter((f) => !prev.some((p) => p.name === f.name && p.size === f.size))]);
   };
 
   const onDrop = (e: DragEvent) => {
@@ -46,13 +49,14 @@ export function PostStatementPage() {
     for (const f of queue) {
       setPostings((p) => [{ file: f.name }, ...p]);
       try {
-        const result = await api.importFile(account.trim(), f);
+        const result = await api.importFile(account.trim(), f, isPdf(f) ? password : undefined);
         setPostings((p) => p.map((x) => (x.file === f.name && !x.result && !x.error ? { ...x, result } : x)));
       } catch (e) {
         setPostings((p) => p.map((x) => (x.file === f.name && !x.result && !x.error ? { ...x, error: (e as Error).message } : x)));
       }
     }
     setPosting(false);
+    setPassword("");          // used once, then forgotten
     accounts.reload();
   };
 
@@ -70,13 +74,15 @@ export function PostStatementPage() {
   };
 
   const newEntries = postings.reduce((n, p) => n + (p.result?.rows_new ?? 0), 0);
+  const hasPdf = files.some(isPdf);
 
   const aside = (
     <>
       <section>
         <p className="kicker">What the book accepts</p>
         <ul className="notes">
-          <li>CSV exports from any Indian bank or card: HDFC, ICICI, SBI, Axis and the rest.</li>
+          <li>CSV exports and PDF e-statements from any Indian bank or card: HDFC, ICICI, SBI, Axis and the rest.</li>
+          <li>Locked PDFs open with the password your bank set. It is used once and never stored.</li>
           <li>A new layout is learned once and remembered, so the next statement from that bank costs nothing.</li>
           <li>Where the export has a running balance, every row is checked against it to the paisa.</li>
           <li>Overlapping statements are safe. Entries already in the book are skipped, never doubled.</li>
@@ -85,7 +91,8 @@ export function PostStatementPage() {
       <section>
         <p className="kicker">No statements handy?</p>
         <p className="small secondary">Run <code className="fig">ledger demo</code> in a terminal. It writes three months of realistic
-          HDFC and ICICI card statements to <code className="fig">sample_data/</code>.</p>
+          HDFC and ICICI card statements to <code className="fig">sample_data/</code>, plus a September HDFC
+          statement as a PDF.</p>
       </section>
     </>
   );
@@ -93,8 +100,8 @@ export function PostStatementPage() {
   return (
     <Sheet aside={aside}>
       <FolioHead kicker="Import" title="Post a statement">
-        Drop in the CSV your bank lets you download. The book reads it, learns its layout, and writes every
-        entry in once.
+        Drop in the CSV or PDF statement your bank lets you download. The book reads it, learns its layout, and
+        writes every entry in once.
       </FolioHead>
 
       <div className="post-form">
@@ -111,12 +118,12 @@ export function PostStatementPage() {
           onDragLeave={() => setOver(false)}
           onDrop={onDrop}
         >
-          <input ref={input} type="file" accept=".csv,.txt,text/csv" multiple className="sr-only"
+          <input ref={input} type="file" accept=".csv,.txt,text/csv,.pdf,application/pdf" multiple className="sr-only"
             onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
           <span className="letterbox__slot" aria-hidden="true" />
           <UploadIcon size={20} />
           <span className="letterbox__title">Drop statements here, or choose files</span>
-          <span className="small muted">CSV · up to 10 MB each · several at once is fine</span>
+          <span className="small muted">CSV or PDF · up to 10 MB each · several at once is fine</span>
         </label>
 
         {files.length > 0 && (
@@ -129,6 +136,12 @@ export function PostStatementPage() {
               </li>
             ))}
           </ul>
+        )}
+
+        {hasPdf && (
+          <TextField label="PDF password (if it's locked)" type="password" autoComplete="off" value={password}
+            onChange={(e) => setPassword(e.target.value)} placeholder="leave empty if the PDF opens without one"
+            hint="Banks often lock e-statements with your name, date of birth or customer ID. Used once to open the file, never stored." />
         )}
 
         <Button onClick={postAll} disabled={posting || !account.trim() || !files.length}>
@@ -152,7 +165,7 @@ export function PostStatementPage() {
             <div className="next-step">
               <p>
                 <strong>{run.stats.processed - run.stats.to_review}</strong> of {run.stats.processed} posted automatically
-                ({run.stats.by_rule} by your rules, {run.stats.by_llm} by the model).
+                ({run.stats.by_rule} by rules{run.stats.transfer_matches ? `, ${run.stats.transfer_matches} of them transfers between your accounts` : ""}, {run.stats.by_llm} by the model).
                 {run.stats.to_review > 0 && <> <strong>{run.stats.to_review}</strong> need your initials.</>}
               </p>
               {run.stats.to_review > 0 && <Link to="/review" className="btn btn--ink">Review them</Link>}

@@ -157,6 +157,26 @@ MIGRATIONS: list[str] = [
                t.status, a.name AS account, t.description
         FROM transactions t JOIN accounts a ON a.id = t.account_id;
     """,
+    # 2 - receipts: evidence attached to a bank transaction, never a transaction of their own
+    """
+    CREATE TABLE receipts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filename TEXT NOT NULL,
+        mime TEXT NOT NULL,
+        sha256 TEXT NOT NULL UNIQUE,              -- the same photo twice is one receipt (and one model call)
+        content BLOB NOT NULL,
+        merchant TEXT NOT NULL DEFAULT '',
+        receipt_date TEXT,                        -- ISO yyyy-mm-dd, if the receipt shows one
+        total_minor INTEGER NOT NULL,             -- paise
+        items_json TEXT NOT NULL DEFAULT '[]',    -- [{description, amount_minor, category}]
+        items_total_minor INTEGER NOT NULL DEFAULT 0,
+        transaction_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL,
+        match_status TEXT NOT NULL DEFAULT 'unmatched'
+            CHECK (match_status IN ('matched', 'unmatched', 'user')),
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE UNIQUE INDEX ix_receipts_txn ON receipts(transaction_id) WHERE transaction_id IS NOT NULL;
+    """,
 ]
 
 

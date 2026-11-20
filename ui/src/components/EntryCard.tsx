@@ -3,6 +3,7 @@
 import { forwardRef } from "react";
 import { day, reasonText, splitCategory } from "../lib/format";
 import type { ReviewItem } from "../lib/types";
+import { BillEvidence } from "./BillSlip";
 import { CategoryPicker } from "./CategoryPicker";
 import { Button } from "./Controls";
 import { Amount, Highlight, Pencil, Stamp } from "./Ledger";
@@ -42,6 +43,8 @@ export const EntryCard = forwardRef<HTMLInputElement, Props>(function EntryCard(
         {suspicious ? <Stamp kind="suspicious" size="sm" /> : mode === "audit" ? <Stamp kind="audit" size="sm" /> : null}{" "}
         <Highlight>{reasonText(item.review_reason, item.confidence)}</Highlight>
       </p>
+
+      {item.receipt_id != null && <BillEvidence id={item.receipt_id} />}
 
       {suggestion && item.suggestion && (
         <div className="entry-card__suggestion">

@@ -37,7 +37,8 @@ class CorrectionResult:
 def review_queue(conn: sqlite3.Connection, limit: int = 50) -> list[sqlite3.Row]:
     return conn.execute(
         "SELECT id, date, amount_minor, merchant, description, category AS suggestion, confidence, review_reason,"
-        " llm_reason FROM transactions WHERE status = 'needs_review' ORDER BY merchant, date LIMIT ?", (limit,)
+        " llm_reason, (SELECT r.id FROM receipts r WHERE r.transaction_id = transactions.id) AS receipt_id"
+        " FROM transactions WHERE status = 'needs_review' ORDER BY merchant, date LIMIT ?", (limit,)
     ).fetchall()
 
 
@@ -48,7 +49,8 @@ def audit_sample(conn: sqlite3.Connection, n: int = 5) -> list[sqlite3.Row]:
     one audit answer can then fix a whole merchant via sibling flags, examples and compiled rules."""
     return conn.execute(
         "SELECT t.id, t.date, t.amount_minor, t.merchant, t.description, t.category AS suggestion, t.confidence,"
-        " 'audit' AS review_reason, t.llm_reason, g.n AS merchant_rows"
+        " 'audit' AS review_reason, t.llm_reason, g.n AS merchant_rows,"
+        " (SELECT r.id FROM receipts r WHERE r.transaction_id = t.id) AS receipt_id"
         " FROM transactions t JOIN ("
         "   SELECT merchant, category, MIN(id) AS id, COUNT(*) AS n, AVG(confidence) AS c FROM transactions"
         "   WHERE status='categorized' AND category_source='llm' AND merchant != ''"

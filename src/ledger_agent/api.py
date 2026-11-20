@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Callable, Iterator, Optional
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from pydantic import BaseModel
 
 from ledger_agent.config import Settings, get_settings
@@ -48,6 +48,10 @@ class MemoryIn(BaseModel):
 
 class BlockIn(BaseModel):
     value: str
+
+
+class AttachIn(BaseModel):
+    transaction_id: Optional[int]
 
 
 def create_app(settings: Settings | None = None,
@@ -92,11 +96,46 @@ def create_app(settings: Settings | None = None,
     deps = [Depends(auth)]
 
     @app.post("/v1/imports", dependencies=deps)
-    async def upload(account: str = Form(...), file: UploadFile = File(...), svc: LedgerService = Depends(service)):
+    async def upload(account: str = Form(...), file: UploadFile = File(...), password: Optional[str] = Form(None),
+                     svc: LedgerService = Depends(service)):
         data = await file.read(MAX_UPLOAD_BYTES + 1)
         if len(data) > MAX_UPLOAD_BYTES:
             raise HTTPException(413, "file too large (max 10 MB)")
-        return as_dict(svc.import_file(account, file.filename or "upload.csv", data))
+        # the PDF password is used to open the file and then dropped: never stored, never logged
+        return as_dict(svc.import_file(account, file.filename or "upload.csv", data, password or None))
+
+    # ---- receipts: evidence attached to a bank entry ------------------------------------
+    @app.post("/v1/receipts", dependencies=deps)
+    async def receipt_upload(file: UploadFile = File(...), svc: LedgerService = Depends(service)):
+        from ledger_agent.receipts import MAX_BYTES
+        data = await file.read(MAX_BYTES + 1)
+        if len(data) > MAX_BYTES:
+            raise HTTPException(413, "receipt too large (max 8 MB)")
+        return as_dict(svc.add_receipt(file.filename or "receipt", data))
+
+    @app.get("/v1/receipts", dependencies=deps)
+    def receipt_list(svc: LedgerService = Depends(service)):
+        return svc.receipts()
+
+    @app.get("/v1/receipts/{receipt_id}", dependencies=deps)
+    def receipt_get(receipt_id: int, svc: LedgerService = Depends(service)):
+        return as_dict(svc.receipt(receipt_id))
+
+    @app.get("/v1/receipts/{receipt_id}/file", dependencies=deps)
+    def receipt_file(receipt_id: int, svc: LedgerService = Depends(service)):
+        data, mime = svc.receipt_content(receipt_id)
+        # nosniff + an empty CSP: an uploaded file is only ever displayed, never run as a page
+        return Response(data, media_type=mime, headers={"X-Content-Type-Options": "nosniff",
+                                                         "Content-Security-Policy": "default-src 'none'",
+                                                         "Cache-Control": "private, max-age=3600"})
+
+    @app.post("/v1/receipts/{receipt_id}/attach", dependencies=deps)
+    def receipt_attach(receipt_id: int, body: AttachIn, svc: LedgerService = Depends(service)):
+        return as_dict(svc.attach_receipt(receipt_id, body.transaction_id))
+
+    @app.delete("/v1/receipts/{receipt_id}", status_code=204, dependencies=deps)
+    def receipt_delete(receipt_id: int, svc: LedgerService = Depends(service)):
+        svc.delete_receipt(receipt_id)
 
     @app.post("/v1/process", dependencies=deps)
     def process(limit: Optional[int] = None, resume: Optional[str] = None, svc: LedgerService = Depends(service)):
@@ -220,7 +259,8 @@ def create_app(settings: Settings | None = None,
         total = svc.conn.execute(f"SELECT COUNT(*) FROM transactions t{clause}", args).fetchone()[0]
         rows = svc.conn.execute(
             "SELECT t.id, t.date, t.amount_minor, t.merchant, t.description, t.category, t.category_source,"
-            f" t.confidence, t.status, t.review_reason, a.name AS account FROM transactions t"
+            f" t.confidence, t.status, t.review_reason, a.name AS account,"
+            " (SELECT r.id FROM receipts r WHERE r.transaction_id = t.id) AS receipt_id FROM transactions t"
             f" JOIN accounts a ON a.id = t.account_id{clause} ORDER BY t.date DESC, t.id DESC LIMIT ? OFFSET ?",
             (*args, max(1, min(limit, 500)), max(0, offset))).fetchall()
         return {"total": total, "items": [dict(r) for r in rows]}

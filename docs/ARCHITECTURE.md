@@ -17,7 +17,7 @@
       ┌──────────────┬────────────┼──────────────┬───────────────┬─────────────────┐
 ┌─────▼─────┐  ┌─────▼──────┐ ┌───▼─────────┐ ┌──▼─────────┐ ┌───▼─────────┐ ┌─────▼──────┐
 │ ingest/   │  │categorize/ │ │ agent/      │ │ insights/  │ │ memory.py   │ │ datagen.py │
-│ csv_reader│  │ pipeline   │ │ loop        │ │ recurring  │ │ blocks      │ │ demo+eval  │
+│ csv/pdf   │  │ pipeline   │ │ loop        │ │ recurring  │ │ blocks      │ │ demo+eval  │
 │ profiles  │  │ rules      │ │ tools       │ │ report     │ │ facts       │ │ data       │
 │ normalize │  │ llm_categ. │ │ sql_guard   │ │            │ │             │ │            │
 │ merchant  │  │ review     │ │             │ │            │ │             │ │            │
@@ -55,6 +55,7 @@ bookkeeping modules depend on the `LLMClient` *protocol*, never on the OpenAI SD
 | `memory_blocks` | household / preferences / goals | **core memory** (pinned) |
 | `memory_facts` | long-term facts | **semantic memory** (retrieved) |
 | `conversation_turns` | Q/A pairs per conversation | **episodic** (chat) |
+| `receipts` | bill photos / invoice PDFs, the model's reading (total, line items), and the entry each is pinned to | evidence only: never adds money; one bill per entry |
 | `v_transactions` (view) | the only surface the agent's SQL tool may read | amounts in rupees |
 
 ## Operation flows
@@ -69,6 +70,23 @@ bytes ─▶ decode (utf-8/utf-16/cp1252) ─▶ sniff delimiter ─▶ find hea
                   LLM propose ─▶ validate ─▶ fail → feedback → retry (≤3) ─▶ save | refuse import
       ─▶ parse rows (Decimal → paise) ─▶ fingerprint (with per-file occurrence) ─▶ INSERT OR IGNORE
       ─▶ merchant + channel extraction (deterministic)          [all inside ONE transaction]
+```
+
+PDF statements take one extra step at the front (`ingest/pdf_reader.py`): text is extracted in layout mode,
+split into cells at runs of 2+ spaces, cells are assigned to the header's columns (numbers by their right edge),
+wrapped narrations are rejoined, and repeated page headers and footers are dropped. The result is the same
+`RawTable` the CSV reader returns, so profiles, the balance check and dedupe are shared. A locked PDF is opened
+with the password sent with the upload, which is then dropped.
+
+### Bill (receipt)
+
+```
+photo / PDF ─▶ sniff type ─▶ same bytes seen? → return it (no model call)
+            ─▶ llm.parse(ReceiptRead): image item for photos, redacted text for PDFs with a text layer
+            ─▶ sensors: is_receipt, total > 0, items add up (±₹1)
+            ─▶ match: debit of exactly the total, ±3 days, not already explained; several → payee-name overlap;
+                      still tied → unmatched, with the nearest entries offered to a person
+            ─▶ INSERT receipts (matched | unmatched); a person can pin/unpin (match_status = user)
 ```
 
 ### Process (one run)
@@ -131,6 +149,8 @@ persist (question, answer)
 | UI built into the Python package, served by FastAPI | separate frontend server / CDN | one process, one port, one artifact: `pip install` or the Docker image gives you the whole app; no CORS |
 | React SPA with a hand-written typed client | generated client; server-rendered pages | the API is small and stable; a 60-line client is easier to read than a generator's output. Keyboard-first review needs client-side state |
 | No UI component or chart library | MUI / Tailwind / Recharts | the design system (DESIGN.md) is the product's identity; ~20 small components cover it, and charts follow the validated palette and dataviz rules exactly |
+| Bills are evidence pinned to an entry, not entries | importing a bill as a transaction | the payment is already in the statement; a second entry would double-count it. Matching needs the exact amount, so a misread total fails safe (unmatched) |
+| PDF statements rebuilt into the CSV reader's table | a separate PDF parsing path; an LLM reading the PDF | one validator for both formats; no tokens; the balance check catches a bad column rebuild |
 | Model text rendered by a tiny safe renderer | a markdown library with raw HTML | narrations are attacker-controlled and can reach answers; no HTML path exists |
 
 ## Extension points

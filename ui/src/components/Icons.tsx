@@ -44,3 +44,10 @@ export const AutoIcon = (p: P) => (
 );
 export const SearchIcon = (p: P) => <Svg {...p}><circle cx="7" cy="7" r="4.5" /><path d="M10.5 10.5 14 14" /></Svg>;
 export const ChevronIcon = (p: P) => <Svg {...p}><path d="M4 6l4 4 4-4" /></Svg>;
+/** The shopkeeper's bill spike: a nail through a slip of paper. */
+export const PinIcon = (p: P) => (
+  <Svg {...p}><path d="M8 1.5v13" /><path d="M4 5.5h8v5H4z" /></Svg>
+);
+export const BillIcon = (p: P) => (
+  <Svg {...p}><path d="M3.5 1.5h9v13l-1.5-1-1.5 1-1.5-1-1.5 1-1.5-1-1.5 1z" /><path d="M6 5h4M6 8h4M6 11h2" /></Svg>
+);

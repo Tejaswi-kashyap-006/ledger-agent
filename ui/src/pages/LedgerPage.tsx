@@ -1,6 +1,7 @@
 // "The ledger": every entry, ruled, filterable. Categories show who decided them (pencil / RULE / You),
 // and any category can be corrected in place - which feeds the same learning loop as Review.
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { FolioHead, Sheet } from "../components/Book";
 import { CategoryPicker } from "../components/CategoryPicker";
 import { Button, ErrorNote, Loading, SelectField, TextField } from "../components/Controls";
@@ -57,6 +58,7 @@ export function LedgerPage() {
         <li><span>Food · Delivery <Stamp kind="rule" size="sm" /></span><span className="small secondary">posted by a rule</span></li>
         <li><span>Food · Delivery <Stamp kind="verified" size="sm" label="You" /></span><span className="small secondary">decided by you</span></li>
         <li><Highlight>Awaiting initials</Highlight><span className="small secondary">in the review queue</span></li>
+        <li><span><Stamp kind="bill" size="sm" /></span><span className="small secondary">a shop bill is pinned to it</span></li>
       </ul>
       <p className="small muted">Select a category to correct it. A correction teaches the book exactly like Review does.</p>
     </section>
@@ -104,7 +106,14 @@ export function LedgerPage() {
                   <tr key={t.id} className={t.status === "needs_review" ? "is-waiting" : ""}>
                     <td className="fig nowrap">{day(t.date)}</td>
                     <td>
-                      <span className="ledger__payee">{t.merchant || "-"}</span>
+                      <span className="ledger__payee">
+                        {t.merchant || "-"}
+                        {t.receipt_id != null && (
+                          <Link to="/bills" className="bill-mark" aria-label={`A bill is pinned to this ${t.merchant} entry`}>
+                            <Stamp kind="bill" size="sm" />
+                          </Link>
+                        )}
+                      </span>
                       <span className="ledger__sub">
                         <span className="ledger__narration fig" title={t.description}>{t.description}</span>
                         <span className="ledger__account">{t.account}</span>

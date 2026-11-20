@@ -1,0 +1,9 @@
+# never rewrite line endings inside binary documents (a PDF with CRLF has broken xref offsets)
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.db binary
+*.woff binary
+*.woff2 binary

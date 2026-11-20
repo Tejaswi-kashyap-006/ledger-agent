@@ -43,6 +43,7 @@ class Dataset:
     files_by_month: dict[str, list[tuple[str, str]]] = field(default_factory=dict)  # month -> [(account, filename)]
     expected_duplicates: int = 0
     injection_descriptions: list[str] = field(default_factory=list)
+    savings_closing_minor: int = 0                               # balance after the last savings row
 
 
 def _ref(rng: random.Random) -> str:
@@ -198,4 +199,222 @@ def generate(seed: int = 7, months: tuple[str, ...] = ("2026-06", "2026-07", "20
 
     ds.labels = all_savings + [t for m in card_by_month for t in m]
     ds.injection_descriptions = [t.description for t in ds.labels if "IGNORE PREVIOUS" in t.description]
+    ds.savings_closing_minor = running
     return ds
+
+
+# ------------------------------------------------------------------------------------------ PDF statements
+def _inr(minor: int) -> str:
+    """Indian digit grouping, as bank PDFs print it: 1,45,000.00"""
+    rupees, paise = divmod(abs(minor), 100)
+    s = str(rupees)
+    head, tail = s[:-3], s[-3:]
+    groups = []
+    while len(head) > 2:
+        groups.insert(0, head[-2:])
+        head = head[:-2]
+    if head:
+        groups.insert(0, head)
+    return ",".join([*groups, tail]) + f".{paise:02d}"
+
+
+def _wrap(text: str, width: int) -> list[str]:
+    """Break like bank PDFs do: after a '/' or at a space, so the reader can rejoin the text exactly."""
+    out = []
+    while len(text) > width:
+        cut = max(text.rfind("/", 0, width), text.rfind(" ", 0, width))
+        cut = cut + 1 if cut > width // 3 else width
+        out.append(text[:cut].strip())
+        text = text[cut:]
+    return [*out, text.strip()] if text.strip() else out
+
+
+def savings_statement_pdf(rows: list[Txn], opening_minor: int, period: tuple[date, date],
+                          rows_per_page: int = 24) -> bytes:
+    """The HDFC savings statement as the bank's PDF e-statement: preamble, a ruled table with a header
+    repeated on every page, narrations wrapped over two lines, Indian digit grouping, page footers."""
+    from ledger_agent.pdfwrite import Page, build_pdf
+
+    cols = [("Date", 36, False), ("Narration", 80, False), ("Chq./Ref.No.", 258, False), ("Value Dt", 318, False),
+            ("Withdrawal Amt.", 424, True), ("Deposit Amt.", 488, True), ("Closing Balance", 562, True)]
+    x = {name: pos for name, pos, _ in cols}
+    chunks = [rows[i:i + rows_per_page] for i in range(0, len(rows), rows_per_page)] or [[]]
+    pages, bal = [], opening_minor
+    for n, chunk in enumerate(chunks, start=1):
+        p = Page()
+        y = 40
+        if n == 1:
+            p.text(36, y, "HDFC BANK", 15, bold=True)
+            p.text(562, y, "Statement of account", 9, right=True)
+            for line in ("Account Holder : A SHARMA", "Account Type : SAVINGS - REGULAR",
+                         f"Statement From : {period[0]:%d/%m/%Y}  To : {period[1]:%d/%m/%Y}",
+                         f"Opening Balance : {_inr(opening_minor)}"):
+                y += 14
+                p.text(36, y, line, 8.5)
+            y += 26
+        for name, left, right in cols:
+            p.text(left, y, name, 7.5, bold=True, right=right)
+        p.line(36, y + 4, 562, y + 4)
+        y += 15
+        for t in chunk:
+            bal += t.amount_minor
+            narr = _wrap(t.description, 38)
+            p.text(x["Date"], y, f"{t.day:%d/%m/%y}", 7.5)
+            p.text(x["Narration"], y, narr[0], 7.5)
+            p.text(x["Chq./Ref.No."], y, "0" * 12, 7.5)
+            p.text(x["Value Dt"], y, f"{t.day:%d/%m/%y}", 7.5)
+            p.text(x["Withdrawal Amt." if t.amount_minor < 0 else "Deposit Amt."], y, _inr(t.amount_minor), 7.5,
+                   right=True)
+            p.text(x["Closing Balance"], y, _inr(bal), 7.5, right=True)
+            for extra in narr[1:]:
+                y += 9.5
+                p.text(x["Narration"], y, extra, 7.5)
+            y += 13
+        if n == len(chunks):
+            y += 24
+            p.text(36, y, f"Closing Balance : {_inr(bal)}", 8.5, bold=True)
+            y += 14
+            p.text(36, y, "*** End of Statement ***", 8)
+        p.text(297, 812, f"Page {n} of {len(chunks)}", 7.5)
+        pages.append(p)
+    return build_pdf(pages, title=f"HDFC Bank statement {period[0]:%b %Y}")
+
+
+def demo_pdf_month(ds: Dataset, month: str = "2026-09", seed: int = 7) -> tuple[str, bytes, list[Txn]]:
+    """One more savings month, delivered as a PDF, that continues from the CSVs' closing balance.
+    It has its own random stream, so adding it never changes the three-month eval data."""
+    rows = _savings_month(random.Random(seed * 1000 + int(month[-2:])), month, idx=3)
+    data = savings_statement_pdf(rows, ds.savings_closing_minor, (rows[0].day, rows[-1].day))
+    return f"hdfc_savings_{month}.pdf", data, rows
+
+
+# ------------------------------------------------------------------------------------------ receipts
+@dataclass
+class ReceiptSpec:
+    """A receipt for one of August's purchases, with the ground truth a perfect reader would return."""
+    filename: str
+    kind: str                       # "photo" (PNG rendered from HTML) or "pdf" (an invoice with a text layer)
+    merchant: str
+    address: str
+    day: date
+    items: list[tuple[str, int, str]]           # (description, amount_minor, category); taxes are lines too
+    invoice_no: str
+    seeded: bool                    # True: the demo database already has it attached; False: upload it live
+
+    @property
+    def total_minor(self) -> int:
+        return sum(a for _, a, _ in self.items)
+
+    def as_read(self) -> dict:
+        """What the model should return for this receipt (the ReceiptRead schema)."""
+        return {"is_receipt": True, "merchant": self.merchant, "date": self.day.isoformat(),
+                "total": self.total_minor / 100,
+                "items": [{"description": d, "amount": a / 100, "category": c} for d, a, c in self.items]}
+
+
+def _rs(rupees: float) -> int:
+    return int(round(rupees * 100))
+
+
+def demo_receipts(ds: Dataset) -> list[ReceiptSpec]:
+    """Four receipts that each explain exactly one August debit, to the paisa. Two show one purchase
+    splitting across categories, which is the thing a bank statement can't tell you."""
+    def find(account: str, day: str, needle: str) -> Txn:
+        hits = [t for t in ds.labels if t.account == account and t.day.isoformat() == day and needle in t.description]
+        assert len(hits) == 1, (account, day, needle, hits)
+        return hits[0]
+
+    truffles = find("ICICI Credit Card", "2026-08-19", "TRUFFLES")
+    apollo = find("HDFC Savings", "2026-08-16", "APOLLO")
+    amazon = find("ICICI Credit Card", "2026-08-16", "AMAZON")
+    basket = find("HDFC Savings", "2026-08-18", "BIGBASKET")
+    specs = [
+        ReceiptSpec("truffles_2026-08-19.png", "photo", "Truffles", "St. John's Road, Koramangala, Bengaluru 560034",
+                    truffles.day, [
+                        ("All American Cheese Burger x2", _rs(840), "Food:Dining Out"),
+                        ("Peri Peri Chicken Wings", _rs(480), "Food:Dining Out"),
+                        ("Cold Coffee x2", _rs(480), "Food:Dining Out"),
+                        ("Brownie with Ice Cream", _rs(200), "Food:Dining Out"),
+                        ("CGST 2.5%", _rs(50), "Food:Dining Out"),
+                        ("SGST 2.5%", _rs(50), "Food:Dining Out"),
+                    ], "TRF/KRM/08193", seeded=True),
+        ReceiptSpec("apollo_2026-08-16.png", "photo", "Apollo Pharmacy",
+                    "80 Feet Road, Koramangala 4th Block, Bengaluru", apollo.day, [
+                        ("Dolo 650mg Tablet 15s", _rs(34), "Health:Pharmacy"),
+                        ("Cetirizine 10mg Tablet 10s", _rs(28), "Health:Pharmacy"),
+                        ("Volini Pain Relief Gel 30g", _rs(165), "Health:Pharmacy"),
+                        ("Electral ORS Sachet x10", _rs(200), "Health:Pharmacy"),
+                        ("Vicks VapoRub 50ml", _rs(154), "Health:Pharmacy"),
+                        ("Himalaya Neem Face Wash 150ml", _rs(199), "Personal Care"),
+                        ("Colgate MaxFresh 150g", _rs(110), "Personal Care"),
+                    ], "APH-KRM-260816-0412", seeded=True),
+        ReceiptSpec("amazon_invoice_2026-08-16.pdf", "pdf", "Amazon.in", "Sold by Cocoblu Retail Pvt Ltd, Bengaluru",
+                    amazon.day, [
+                        ("Atomic Habits by James Clear (Paperback)", _rs(449), "Education"),
+                        ("Spigen Rugged Armor Case for iPhone 15", _rs(720.34), "Shopping:Electronics"),
+                        ("IGST 18% on case", _rs(129.66), "Shopping:Electronics"),
+                        ("Shipping", _rs(0), "Shopping:Online"),
+                    ], "IN-BLR4-2614523", seeded=False),
+        ReceiptSpec("bigbasket_2026-08-18.png", "photo", "bigbasket", "Order delivered to Koramangala, Bengaluru",
+                    basket.day, [
+                        ("Aashirvaad Whole Wheat Atta 5kg", _rs(285), "Food:Groceries"),
+                        ("India Gate Basmati Rice 5kg", _rs(649), "Food:Groceries"),
+                        ("Amul Butter 500g", _rs(285), "Food:Groceries"),
+                        ("Tata Sampann Toor Dal 1kg", _rs(179), "Food:Groceries"),
+                        ("Fortune Sunflower Oil 1L", _rs(155), "Food:Groceries"),
+                        ("Fresh vegetables and fruits", _rs(412), "Food:Groceries"),
+                        ("Tata Salt 1kg", _rs(28), "Food:Groceries"),
+                        ("Dove Cream Beauty Bar 4x100g", _rs(237), "Personal Care"),
+                    ], "BB-26081807731", seeded=False),
+    ]
+    for spec, txn in zip(specs, (truffles, apollo, amazon, basket)):
+        assert spec.total_minor == -txn.amount_minor, (spec.filename, spec.total_minor, txn.amount_minor)
+    return specs
+
+
+def receipt_invoice_pdf(spec: ReceiptSpec) -> bytes:
+    """A marketplace tax invoice as a text PDF (how Amazon and Flipkart e-mail them)."""
+    from ledger_agent.pdfwrite import Page, build_pdf
+
+    p = Page()
+    p.text(40, 50, "Tax Invoice/Bill of Supply/Cash Memo", 13, bold=True)
+    p.text(555, 50, "(Original for Recipient)", 8, right=True)
+    p.text(40, 80, spec.merchant, 10, bold=True)
+    p.text(40, 94, spec.address, 8.5)
+    p.text(40, 118, f"Invoice Number : {spec.invoice_no}", 8.5)
+    p.text(40, 132, f"Invoice Date : {spec.day:%d.%m.%Y}", 8.5)
+    p.text(40, 146, "Order Number : 408-2916452-7716342", 8.5)
+    p.text(40, 160, "Billing Address : A Sharma, Koramangala, Bengaluru 560034", 8.5)
+    p.text(40, 194, "Sl.", 8.5, bold=True)
+    p.text(66, 194, "Description", 8.5, bold=True)
+    p.text(555, 194, "Amount", 8.5, bold=True, right=True)
+    p.line(40, 199, 555, 199)
+    y = 214
+    for n, (desc, amount, _) in enumerate(spec.items, start=1):
+        p.text(40, y, str(n), 8.5)
+        p.text(66, y, desc, 8.5)
+        p.text(555, y, f"Rs. {_inr(amount)}", 8.5, right=True)
+        y += 16
+    p.line(40, y, 555, y)
+    p.text(66, y + 16, "TOTAL", 9, bold=True)
+    p.text(555, y + 16, f"Rs. {_inr(spec.total_minor)}", 9, bold=True, right=True)
+    p.text(40, y + 44, "Payment: Credit Card ending 4417", 8.5)
+    return build_pdf([p], title=f"Invoice {spec.invoice_no}")
+
+
+def receipt_html(spec: ReceiptSpec) -> str:
+    """A thermal-printer receipt, rendered to PNG by scripts/make_sample_documents.py."""
+    import html
+    rows = "".join(f"<tr><td>{html.escape(d)}</td><td class=r>{_inr(a)}</td></tr>" for d, a, _ in spec.items)
+    return f"""<!doctype html><meta charset=utf-8><style>
+body{{margin:0;background:#d9d4c7;display:flex;justify-content:center;padding:28px 0}}
+.r{{text-align:right}} .slip{{width:330px;background:#fbfaf6;padding:22px 20px 30px;
+font:13px/1.45 "Courier New",monospace;color:#222;box-shadow:0 2px 8px #0003;transform:rotate(-0.6deg)}}
+h1{{font-size:19px;text-align:center;margin:0 0 4px;letter-spacing:1px}} .c{{text-align:center}}
+table{{width:100%;border-collapse:collapse}} td{{padding:2px 0;vertical-align:top}}
+hr{{border:0;border-top:1px dashed #555;margin:10px 0}} .t td{{font-weight:bold;font-size:15px}}
+</style><div class=slip><h1>{html.escape(spec.merchant.upper())}</h1>
+<div class=c>{html.escape(spec.address)}</div><hr>
+<div>Bill No: {html.escape(spec.invoice_no)}</div><div>Date: {spec.day:%d/%m/%y} &nbsp; Time: 19:42</div><hr>
+<table>{rows}</table><hr><table class=t><tr><td>TOTAL</td><td class=r>Rs {_inr(spec.total_minor)}</td></tr></table>
+<hr><div class=c>Paid by UPI / Card</div><div class=c>Thank you! Visit again</div></div>"""
