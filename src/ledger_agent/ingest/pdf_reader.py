@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from ledger_agent.ingest.csv_reader import RawTable, _header_score
 
 _CHUNK = re.compile(r"\S+(?: \S+)*")          # words separated by single spaces
+_PAGE_NO = re.compile(r"\s+Page\s+\d+(\s+of\s+\d+)?\s*$", re.I)
 _DATEISH = re.compile(r"^\d{1,2}[-/ .](\d{1,2}|[A-Za-z]{3})[-/ .]\d{2,4}$|^\d{4}-\d{2}-\d{2}$")
 
 
@@ -84,6 +85,72 @@ def _column_for(chunk: _Chunk, spans: list[tuple[int, int]]) -> int:
     return min(range(len(spans)), key=lambda i: gaps[i])
 
 
+def _separate_numbers(chunks: list[_Chunk], cols: list[int]) -> list[int]:
+    """Two amounts never share a cell. When a short amount ("99.33") sits nearer the balance column's
+    right edge than its own, it collides with the balance: move the left one into the empty column on its
+    left, right to left, so a row's figures keep their order."""
+    cols = list(cols)
+    for i in range(len(chunks) - 1, -1, -1):
+        if not _NUMBER.match(chunks[i].text):
+            continue
+        later = [cols[j] for j in range(i + 1, len(chunks)) if _NUMBER.match(chunks[j].text)]
+        if later and cols[i] >= min(later):
+            target = min(later) - 1
+            if target >= 0 and target not in cols:
+                cols[i] = target
+    return cols
+
+
+def _mul(m: list[float], n: list[float]) -> list[float]:
+    """PDF matrix product m x n, both as [a b c d e f]."""
+    a, b, c, d, e, f = m
+    a2, b2, c2, d2, e2, f2 = n
+    return [a * a2 + b * c2, a * b2 + b * d2, c * a2 + d * c2, c * b2 + d * d2,
+            e * a2 + f * c2 + e2, e * b2 + f * d2 + f2]
+
+
+def _rotated(m: list[float]) -> bool:
+    return abs(m[1]) > 1e-3 or abs(m[2]) > 1e-3
+
+
+_SHOW = {b"Tj", b"TJ", b"'", b'"'}
+
+
+def _drop_rotated_text(page, reader) -> None:
+    """Remove text drawn at an angle (diagonal "SAMPLE" / "COPY" watermarks) before layout extraction.
+
+    pypdf's own strip_rotated only looks at the text matrix, but watermarks are usually rotated with the
+    graphics matrix (`cm`) instead, and an unstripped watermark collapses every line it crosses into one
+    run-together string, losing those rows. Statement rows are never rotated, so dropping it is safe."""
+    from pypdf.generic import ContentStream, NameObject
+
+    contents = page.get_contents()
+    if contents is None:
+        return
+    cs = ContentStream(contents, reader)
+    ctm, stack, tm = [1.0, 0, 0, 1.0, 0, 0], [], [1.0, 0, 0, 1.0, 0, 0]
+    kept, dropped = [], 0
+    for operands, op in cs.operations:
+        if op == b"q":
+            stack.append(ctm)
+        elif op == b"Q":
+            ctm = stack.pop() if stack else [1.0, 0, 0, 1.0, 0, 0]
+        elif op == b"cm" and len(operands) == 6:
+            ctm = _mul([float(x) for x in operands], ctm)
+        elif op == b"BT":
+            tm = [1.0, 0, 0, 1.0, 0, 0]
+        elif op == b"Tm" and len(operands) == 6:
+            tm = [float(x) for x in operands]
+        elif op in _SHOW and _rotated(_mul(tm, ctm)):
+            dropped += 1
+            continue
+        kept.append((operands, op))
+    if dropped:
+        cs.operations = kept
+        # in memory only: replace_contents() needs a writer, and the page is only read from here on
+        page[NameObject("/Contents")] = cs
+
+
 def extract_lines(data: bytes, password: str | None = None) -> list[str]:
     from pypdf import PdfReader
     from pypdf.errors import PdfReadError
@@ -105,8 +172,13 @@ def extract_lines(data: bytes, password: str | None = None) -> list[str]:
             raise PdfPasswordRequired("That password didn't open the PDF. Check it and try again.")
     lines: list[str] = []
     for page in reader.pages:
+        try:
+            _drop_rotated_text(page, reader)
+        except Exception:  # noqa: BLE001 - an odd content stream: extract it as it is
+            pass
         text = page.extract_text(extraction_mode="layout") or ""
-        lines.extend(text.splitlines())
+        # a "Page 5" footer can share a baseline with the last row and glue onto its balance
+        lines.extend(_PAGE_NO.sub("", line) for line in text.splitlines())
         lines.append("")                        # page break = a gap, so rows never continue across pages
     if not any(line.strip() for line in lines):
         raise ValueError("This PDF has no text layer (it looks like a scan or a photo). Scanned statements "
@@ -134,23 +206,41 @@ def read_pdf_table(data: bytes, password: str | None = None, max_scan: int = 120
     date_col = next((i for i, h in enumerate(norm_header) if "date" in h), 0)
 
     rows: list[list[str]] = []
+    row_starts: dict[int, int] = {}       # where each cell of the last row starts -> its column
     can_continue = False                  # True only directly under a row (or under its wrapped tail)
+    header_words = " ".join(norm_header)
     for line in lines[best_i + 1:]:
         chunks = _chunks(line)
-        if not chunks or [c.text.lower() for c in chunks] == norm_header:   # gap, or header on a later page
+        if not chunks:
             can_continue = False
             continue
+        if " ".join(c.text.lower() for c in chunks) == header_words:
+            # the header again, on a later page. pypdf scales each page on its own, so the same column can
+            # sit a few characters further right on page 2: take the positions from this page's header
+            if len(chunks) == width:
+                spans = [(c.start, c.end) for c in chunks]
+            can_continue = False
+            continue
+        cols = _separate_numbers(chunks, [_column_for(c, spans) for c in chunks])
         cells = [""] * width
-        for c in chunks:
-            col = _column_for(c, spans)
+        for c, col in zip(chunks, cols):
             cells[col] = f"{cells[col]} {c.text}".strip()
         has_date = bool(_DATEISH.match(cells[date_col]))
         filled = [i for i, v in enumerate(cells) if v]
         if not has_date and can_continue and not any(_NUMBER.match(c.text) for c in chunks):
-            for i in filled:                                     # wrapped narration: glue onto the row above
-                rows[-1][i] = _rejoin(rows[-1][i], cells[i])
+            # wrapped narration: glue onto the row above. A wrapped line starts where the text it continues
+            # started, which is a better guide than the header (a centred "Description" header can sit
+            # nearer a neighbouring column than the narrations under it do)
+            tails = [""] * width
+            for c, col in zip(chunks, cols):
+                col = next((k for s, k in row_starts.items() if abs(s - c.start) <= 1), col)
+                tails[col] = f"{tails[col]} {c.text}".strip()
+            for i, v in enumerate(tails):
+                if v:
+                    rows[-1][i] = _rejoin(rows[-1][i], v)
         elif len(filled) >= 2 and has_date:
             rows.append(cells)
+            row_starts = {c.start: col for c, col in zip(chunks, cols)}
             can_continue = True
         else:
             # not a row: page footers, totals, "*** End of Statement ***". Nothing below continues a row.

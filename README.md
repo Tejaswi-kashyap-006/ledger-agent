@@ -77,7 +77,7 @@ Everything in the UI is also available from the terminal (`ledger import`, `proc
 **Check it:**
 
 ```powershell
-pytest                                         # backend: 115 tests, offline
+pytest                                         # backend: 124 tests, offline
 python evals/run_evals.py --fake               # offline eval: learning curve, safety, grounding
 cd ui; npm run typecheck; npm test             # frontend: strict TS + 44 tests
 ```
@@ -193,8 +193,11 @@ outside this repository; this table is the map from each idea to its code.
 ## Limitations and roadmap
 
 - PDF statements need a text layer. Scanned statements are refused with a clear message; a vision step for them
-  would slot in before `read_pdf_table`. The column rebuild is tested on generated layouts, so a bank's unusual
-  PDF may need its header synonyms added; the balance check makes a bad rebuild fail loudly, never silently.
+  would slot in before `read_pdf_table`. Besides our own layouts, the reader was checked against 46 statements
+  from a public synthetic dataset with a different generator (watermarks, dates with times, two column layouts):
+  every row, and all 7,379 amounts and balances, matched the dataset's answers to the paisa
+  ([`sample_data/web/SOURCES.md`](sample_data/web/SOURCES.md)). A real bank's PDF can still need its header
+  synonyms added; the balance check makes a bad rebuild fail loudly, never silently.
 - Bills are evidence: their line-item split is shown, not booked. Booking one payment under two categories
   (split transactions) isn't modelled yet. Bill photos go to the model provider unredacted (SECURITY.md).
 - Single user, SQLite. The path to multi-user is in [OPERATIONS.md](docs/OPERATIONS.md#scaling-path).

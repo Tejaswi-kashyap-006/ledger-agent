@@ -13,12 +13,22 @@ DATE_FORMATS = [
 ]
 
 _CURRENCY = re.compile(r"(₹|rs\.?|inr)", re.I)
+# "01-01-2024 11:30:55", "01/01/2024 12:12:52 PM": many exports stamp the time; the ledger keeps the day
+_TIME = re.compile(r"[ T]+\d{1,2}:\d{2}(:\d{2})?(\.\d+)?( ?[AP]M)?$", re.I)
+
+
+def _drop_time(value: str) -> str:
+    return _TIME.sub("", value.strip())
 
 
 def parse_date(value: str, fmt: str | None = None) -> date:
     value = value.strip()
     if fmt:
-        return datetime.strptime(value, fmt).date()
+        try:
+            return datetime.strptime(value, fmt).date()
+        except ValueError:
+            return datetime.strptime(_drop_time(value), fmt).date()
+    value = _drop_time(value)
     for f in DATE_FORMATS:
         try:
             return datetime.strptime(value, f).date()
@@ -30,7 +40,7 @@ def parse_date(value: str, fmt: str | None = None) -> date:
 def detect_date_format(samples: list[str]) -> str | None:
     """The first format that parses EVERY sample. Order encodes the day-first preference (India/UK);
     samples like 13/02/2026 disambiguate automatically because %m/%d fails on them."""
-    samples = [s.strip() for s in samples if s and s.strip()]
+    samples = [_drop_time(s) for s in samples if s and s.strip()]
     for f in DATE_FORMATS:
         try:
             for s in samples:
