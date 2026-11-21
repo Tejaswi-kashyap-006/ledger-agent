@@ -65,7 +65,7 @@ function RuledSheet({ children, aside }: { children: ReactNode; aside?: ReactNod
   );
 }
 
-/** Page heading that starts left of the margin rule and crosses it. */
+/** Page heading: kicker, title and intro, in the text column right of the margin rule. */
 export function FolioHead({ kicker, title, children }: { kicker: string; title: string; children?: ReactNode }) {
   return (
     <header className="folio-head">

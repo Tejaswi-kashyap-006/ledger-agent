@@ -46,11 +46,41 @@ const CHECK = `(() => {
       }
     }
   }
-  // horizontal: a hanging title unit shares one left edge
+  // horizontal: a title unit shares one left edge, and no ink crosses the red margin rule (DESIGN.md, Layout)
   const h = [];
+  const rule = document.querySelector(".sheet__margin")?.getBoundingClientRect();
+  if (rule && rule.width) {
+    const tw = document.createTreeWalker(document.querySelector(".sheet__body") ?? document.body, NodeFilter.SHOW_TEXT);
+    for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+      if (!n.data.trim() || !n.parentElement?.checkVisibility?.()) continue;
+      const rg = document.createRange(); rg.selectNodeContents(n);
+      for (const r of rg.getClientRects()) {
+        if (r.width && r.left < rule.right && r.right > rule.left) {
+          h.push("crosses the margin rule: " + n.parentElement.tagName.toLowerCase() + " '" + n.data.trim().slice(0, 24) + "'");
+          break;
+        }
+      }
+    }
+  }
   for (const head of document.querySelectorAll(".folio-head")) {
     const k = head.querySelector(".kicker")?.getBoundingClientRect().left, t = head.querySelector("h1")?.getBoundingClientRect().left;
     if (k != null && t != null && Math.abs(k - t) > 1) h.push("kicker " + Math.round(k) + " vs title " + Math.round(t));
+  }
+  // no text spills out of the main column into the marginalia (e.g. a bar's value label at its tip)
+  const main = document.querySelector(".sheet__main")?.getBoundingClientRect();
+  if (main) {
+    const tw = document.createTreeWalker(document.querySelector(".sheet__main"), NodeFilter.SHOW_TEXT);
+    for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+      if (!n.data.trim() || !n.parentElement?.checkVisibility?.({ opacityProperty: true, visibilityProperty: true })) continue;
+      if (n.parentElement.closest(".table-scroll, .sr-only")) continue;      // scroll boxes are checked below
+      const rg = document.createRange(); rg.selectNodeContents(n);
+      for (const r of rg.getClientRects()) {
+        if (r.width && r.right > main.right + 1) {
+          h.push("spills out of the main column: " + n.parentElement.tagName.toLowerCase() + " '" + n.data.trim().slice(0, 24) + "' by " + Math.round(r.right - main.right) + "px");
+          break;
+        }
+      }
+    }
   }
   const hl = document.querySelector(".hero__label")?.getBoundingClientRect().left, hv = document.querySelector(".hero__value")?.getBoundingClientRect().left;
   if (hl != null && hv != null && Math.abs(hl - hv) > 1) h.push("hero label " + Math.round(hl) + " vs figure " + Math.round(hv));

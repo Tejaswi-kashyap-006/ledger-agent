@@ -157,21 +157,23 @@ function Folio({ month, months, onMonth }: { month: string; months: string[]; on
 
           {f.big_changes_vs_last_month.length > 0 && (
             <Section title="Moved since last month" kicker="Changes over 20% and ₹500">
-              <table className="ruled">
-                <thead><tr><th scope="col">Category</th><th scope="col" className="num">Last month</th><th scope="col" className="num">This month</th><th scope="col" className="num">Change</th></tr></thead>
-                <tbody className="stagger">
-                  {f.big_changes_vs_last_month.map((c) => (
-                    <tr key={c.category}>
-                      <th scope="row">{c.category}</th>
-                      <td className="num fig">{rupees(c.last_month)}</td>
-                      <td className="num fig">{rupees(c.this_month)}</td>
-                      <td className={`num fig ${c.change_pct > 0 ? "rise" : "fall"}`}>
-                        {c.change_pct > 0 ? <ArrowUpIcon size={12} /> : <ArrowDownIcon size={12} />} {pct(c.change_pct, 0, true)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="table-scroll">
+                <table className="ruled stack-table">
+                  <thead><tr><th scope="col">Category</th><th scope="col" className="num">Last month</th><th scope="col" className="num">This month</th><th scope="col" className="num">Change</th></tr></thead>
+                  <tbody className="stagger">
+                    {f.big_changes_vs_last_month.map((c) => (
+                      <tr key={c.category}>
+                        <th scope="row">{c.category}</th>
+                        <td className="num fig" data-label="last month">{rupees(c.last_month)}</td>
+                        <td className="num fig" data-label="this month">{rupees(c.this_month)}</td>
+                        <td className={`num fig ${c.change_pct > 0 ? "rise" : "fall"}`} data-label="change">
+                          {c.change_pct > 0 ? <ArrowUpIcon size={12} /> : <ArrowDownIcon size={12} />} {pct(c.change_pct, 0, true)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </Section>
           )}
 

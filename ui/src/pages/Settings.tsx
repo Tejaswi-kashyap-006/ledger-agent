@@ -164,7 +164,7 @@ export function SettingsPage() {
       {stats.data && stats.data.llm.length > 0 && (
         <Section title="Model usage" kicker="From the audit log of every call">
           <div className="table-scroll">
-            <table className="ruled usage-table">
+            <table className="ruled stack-table">
               <thead><tr><th scope="col">Purpose</th><th scope="col" className="num">Calls</th><th scope="col" className="num">Tokens in</th>
                 <th scope="col" className="num">Tokens out</th><th scope="col" className="num">Cache hits</th><th scope="col" className="num">Errors</th></tr></thead>
               <tbody>

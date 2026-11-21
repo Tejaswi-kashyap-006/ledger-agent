@@ -1,6 +1,7 @@
 // Spend by category: one series, horizontal bars INSIDE ruled table rows (DESIGN.md "Charts").
 // Bars <= 24px (here 10px), 4px rounded data-end, square at the baseline, value at the tip, and a
 // hover/focus tooltip that adds share and rank. The table itself is the accessible table view.
+import type { CSSProperties } from "react";
 import { rupees } from "../../lib/format";
 import { splitCategory } from "../../lib/format";
 
@@ -25,7 +26,7 @@ export function RuledBars({ data, caption }: { data: BarDatum[]; caption: string
               </th>
               <td className="bar-row__cell">
                 <span className="bar-row__track">
-                  <span className="bar-row__bar" style={{ width: `max(${w}%, 2px)` }} />
+                  <span className="bar-row__bar" style={{ "--w": w / 100 } as CSSProperties} />
                   <span className="bar-row__value fig">{rupees(d.value)}</span>
                 </span>
                 <span className="chart-tip" role="tooltip">

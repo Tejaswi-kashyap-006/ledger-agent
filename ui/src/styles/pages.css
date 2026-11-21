@@ -234,15 +234,16 @@
   .charges td:nth-child(6) { grid-column: 2; grid-row: 3; text-align: right; }
 }
 
-/* model usage: six columns don't fit a narrow column, so each purpose becomes three lines (name, then figures
-   labelled in place, since the header row is hidden) */
+/* figure tables (model usage on Settings, "moved since last month" on the folio): their columns don't fit a
+   narrow column, so each row becomes its name on one line, then its figures three to a line, each labelled in
+   place (data-label), since the header row is hidden */
 @container (max-width: 560px) {
-  .usage-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  .usage-table, .usage-table tbody { display: block; }
-  .usage-table tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--s2); }
-  .usage-table th, .usage-table td { padding: 0; text-align: left; line-height: var(--line); }
-  .usage-table th { grid-column: 1 / -1; }
-  .usage-table td::before { content: attr(data-label) " "; font-family: var(--font-body); font-size: var(--t-xs); color: var(--muted); line-height: 1; }
+  .stack-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .stack-table, .stack-table tbody { display: block; }
+  .stack-table tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--s2); }
+  .stack-table th, .stack-table td { padding: 0; text-align: left; line-height: var(--line); }
+  .stack-table th { grid-column: 1 / -1; }
+  .stack-table td::before { content: attr(data-label) " "; font-family: var(--font-body); font-size: var(--t-xs); color: var(--muted); line-height: 1; }
 }
 @container (max-width: 440px) {
   .rules-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

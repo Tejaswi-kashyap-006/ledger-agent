@@ -108,7 +108,6 @@
 /* ---- the sheet ---------------------------------------------------------------------------- */
 .sheet {
   --content-left: calc(var(--margin-rule-x) + var(--s4));
-  --head-x: var(--s4);
   position: relative;
   isolation: isolate;
   max-width: calc(var(--content-left) + var(--main-max) + var(--s8) + var(--marginalia-w) + var(--s8));
@@ -180,24 +179,13 @@
 .write-cta, .all-clear, .next-step, .editorial, .post-form, .letter { gap: var(--line); }
 .section > .h-section + * { margin-top: var(--line); }
 
-/* A title unit (kicker + title) starts LEFT of the margin rule and crosses it - the grid-breaking gesture.
-   The kicker hangs with its title so the unit reads as one; the intro paragraph returns to the text column.
-   Where the ink crosses the red rule, a strip of paper lifts the rule out from under the glyphs. */
-.folio-head { margin-left: calc(var(--head-x) - var(--content-left)); }
-.folio-head p:not(.kicker) { padding-left: calc(var(--content-left) - var(--head-x)); max-width: calc(60ch + var(--content-left)); color: var(--ink-2); }
+/* A title unit (kicker + title + intro) sits in the text column, right of the red margin rule, which stays
+   unbroken from top to bottom (DESIGN.md, Layout). */
+.folio-head p:not(.kicker) { max-width: 60ch; color: var(--ink-2); }
 .folio-head h1 { animation: ink-in 260ms var(--ease-out) 380ms both; }
 /* Display type spans several ruled lines, so rules would always cut through it: it is set on a clean patch
-   of paper instead (the ruling resumes beside it). The one-line kicker and label only lift the red rule. */
+   of paper instead (the ruling resumes beside it). */
 .folio-head h1, .hero__value, .stat-line__big { width: fit-content; background: var(--paper); }
-.folio-head .kicker, .hero__label {
-  width: fit-content;
-  z-index: 1;
-  background: linear-gradient(to right,
-    transparent calc(var(--margin-rule-x) - var(--head-x) - 3px),
-    var(--paper) calc(var(--margin-rule-x) - var(--head-x) - 3px) calc(var(--margin-rule-x) - var(--head-x) + 8px),
-    transparent calc(var(--margin-rule-x) - var(--head-x) + 8px));
-}
-.folio-head .kicker { position: relative; }
 
 .ink-in { animation: ink-in 260ms var(--ease-out) 380ms both; }
 
@@ -238,7 +226,8 @@
   }
   .tab { flex: 0 0 auto; border-radius: 0; border: 0; height: var(--s8); grid-template-columns: auto auto; gap: var(--s1); }
   .tab__num, .tabs__gap { display: none; }
-  .sheet { --margin-rule-x: var(--s3); --head-x: var(--s1); border-left: 0; margin-bottom: var(--s8); }
+  /* the text column starts half a step after the rule on a phone: every px counts at 360 (the hero figure) */
+  .sheet { --margin-rule-x: var(--s3); --content-left: calc(var(--margin-rule-x) + var(--s2)); border-left: 0; margin-bottom: var(--s8); }
   .sheet::before { display: none; }
   .sheet__body { padding: var(--s8) var(--s2) var(--s16) var(--content-left); }
 }

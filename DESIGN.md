@@ -106,18 +106,19 @@ Added 2026-09-29 after the first build showed rules running through text. These 
 | Blockified spans (grid or flex items) get their full 28px line back | otherwise they collapse |
 | No layout-affecting borders in the flow. Heavy rules are drawn **on** the ruled line (gradient at `--rule-y`), and tables have no row borders: the page's rules are the row rules | a 1–2px border shifts everything after it |
 | Variable-height blocks (cards, receipts, charts, tables) are snapped by `ui/src/lib/rhythm.ts`: each flow child gets a bottom margin that rounds it up to whole lines | the next block starts on the grid, whatever the data |
-| Display type that spans several rules (page titles, the hero figure, big stats) is set on a clean patch of paper; the one-line kicker only lifts the red margin rule | rules through a 90px numeral read as a strikethrough |
-| A hanging title unit (kicker + title) shares one left edge; the intro paragraph returns to the text column | the kicker and title read as one object crossing the margin |
+| Display type that spans several rules (page titles, the hero figure, big stats) is set on a clean patch of paper | rules through a 90px numeral read as a strikethrough |
+| Nothing crosses the red margin rule. Title units (kicker + title) and the hero unit (label + figure) start on the text column's left edge, like everything else | (changed 2026-11-21, at the owner's request) headings that hung across the rule read as text colliding with it, not as a deliberate gesture |
 | Wide tables restack each row into a 3-line block when **their own column** is narrow (CSS container queries on `.table-scroll`, not viewport breakpoints). One-line cells in a restacked row never wrap (ellipsis) | at 1280px the margin column squeezes the text column; a wrapped cell would spread an extra line over two grid rows (14px each) |
 
 **Verification:** `ui/scripts/check-rhythm.mjs` measures every text line's real baseline in Chrome and fails if any is
-off its rule or crossed by one. It also flags content hidden inside a scroll box. It must report 0 problems at 1440, 1280, 1024, 800, 390 and 360px before UI changes ship.
+off its rule or crossed by one. It also flags content hidden inside a scroll box, any text that crosses the red
+margin rule, and any text that spills out of the main column into the margin column (e.g. a bar's value label). It must report 0 problems at 1440, 1280, 1024, 800, 390 and 360px before UI changes ship.
 
 ```
 ┌────┬─╥──────────────────────────────────────────────────────┬──────────────────┐
 │ S  │T║  SEPTEMBER FOLIO                                     │  marginalia      │
 │ P  │A║ ─────────────────────────────────────────────────────│  (trend chart,   │
-│ I  │B║  ₹ 42,318 ← hero crosses the red margin rule         │   stamps, notes) │
+│ I  │B║  ₹ 42,318 ← hero sits right of the red margin rule   │   stamps, notes) │
 │ N  │S║  ─ ruled rows: jama · naam ──────────────────────────│                  │
 │ E  │ ║                                                      │                  │
 └────┴─╨──────────────────────────────────────────────────────┴──────────────────┘
@@ -131,12 +132,12 @@ off its rule or crossed by one. It also flags content hidden inside a scroll box
   The active tab is the same paper as the page and merges into it; inactive tabs sit one step darker.
   Labels are plain English (Review, Ledger, Reports…). The evocative words go in page headings.
 - **The sheet**: left-aligned, not centered. It has a second sheet peeking 7px behind it (the only drop
-  shadow in the app). The **red double margin rule** runs top to bottom 84px in, and each title unit (kicker +
-  title) and the hero unit (label + figure) **start left of it and cross it**, which is the grid-breaking gesture.
-  Where their ink crosses the red rule, the rule steps aside.
+  shadow in the app). The **red double margin rule** runs top to bottom 84px in, unbroken, as in a real account
+  book: all ink sits to its right, title units and the hero figure included. The asymmetry comes from the
+  left-aligned sheet and the margin column, not from text crossing the rule.
 - **Margin column** (280px, right): charts, stamps and notes live here like marginalia, never in a row of
-  equal cards. Below 1100px it folds under the main column. Below 720px the tabs become a bottom bar and
-  the spine becomes a 7px crimson top edge.
+  equal cards. Below 1100px it folds under the main column. Below 720px the tabs become a bottom bar,
+  the spine becomes a 7px crimson top edge, and the margin rule moves to 21px with the text 14px after it.
 
 ## Depth
 

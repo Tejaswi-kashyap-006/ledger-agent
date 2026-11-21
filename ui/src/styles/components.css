@@ -16,8 +16,7 @@
 /* ---- amounts ---------------------------------------------------------------------------------- */
 .amt { font-family: var(--font-figures); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-/* ---- hero figure (one per view; crosses the margin rule) -------------------------------------- */
-.hero { margin-left: calc(var(--head-x) - var(--content-left)); }
+/* ---- hero figure (one per view; in the text column, right of the margin rule) ------------------ */
 .hero__label { position: relative; }
 .hero__value {
   position: relative;
@@ -27,7 +26,7 @@
   letter-spacing: -0.01em;
   color: var(--ink);
 }
-.hero__note { padding-left: calc(var(--content-left) - var(--head-x)); color: var(--ink-2); }
+.hero__note { color: var(--ink-2); }
 
 /* ---- pencil: the model's hand ---------------------------------------------------------------- */
 .pencil { font-family: var(--font-pencil); color: var(--pencil); font-size: 1.0625rem; line-height: var(--line); }
@@ -278,10 +277,13 @@ kbd {
 .bars .bar-row { position: relative; outline-offset: -2px; }
 .bar-row__label { width: 40%; padding-right: var(--s2); }
 .bar-row__cell { position: relative; }
-.bar-row__track { display: flex; align-items: flex-start; gap: var(--s1); height: var(--line); }
+/* the value label sits at the bar's tip, so the longest bar leaves room for it (10ch fits "₹10,00,000"
+   in the figures face) instead of pushing it out of the column into the marginalia */
+.bar-row__track { display: flex; align-items: flex-start; gap: var(--s1); height: var(--line); font-family: var(--font-figures); font-size: var(--t-sm); }
 .bar-row__bar {
   display: block;
   flex: none;
+  width: max(2px, calc((100% - 10ch - var(--s1)) * var(--w, 0)));
   height: 10px;
   margin-top: calc(var(--rule-y) - 10px);   /* the bar stands on the row's rule, like the text beside it */
   background: var(--series-out);

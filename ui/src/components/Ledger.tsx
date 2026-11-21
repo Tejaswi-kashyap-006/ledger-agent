@@ -79,7 +79,7 @@ export function CategoryLabel({ category, source }: { category: string | null; s
   );
 }
 
-/** The one hero figure per view (Rozha One, crosses the margin rule). */
+/** The one hero figure per view (Rozha One, right of the margin rule). */
 export function HeroFigure({ label, value, note }: { label: string; value: string; note?: ReactNode }) {
   return (
     <div className="hero ink-in">
